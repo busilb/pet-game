@@ -708,7 +708,8 @@ const PETS = {
   snake: { name:'小青', breed:'蛇', emoji:'🐍', desc:'神秘安静的冷血小伙伴', babyEmoji:'🐍', babyWord:'小蛇宝宝', birthVerb:'产了一窝蛋，孵出了小蛇' },
   parrot: { name:'蓝莓', breed:'鹦鹉', emoji:'🦜', desc:'五颜六色的话唠小可爱', babyEmoji:'🐣', babyWord:'小鹦鹉', birthVerb:'下了蛋，孵出了小鹦鹉' },
   duck: { name:'小饼干', breed:'鸭子', emoji:'🦆', desc:'嘎嘎叫的软萌小可爱', babyEmoji:'🐣', babyWord:'小鸭宝', birthVerb:'下了一窝蛋，孵出了小鸭子' },
-  turtle: { name:'龟仙人', breed:'乌龟', emoji:'🐢', desc:'慢悠悠的长寿小智者', babyEmoji:'🐢', babyWord:'小龟宝', birthVerb:'产了蛋，孵出了小乌龟' }
+  turtle: { name:'龟仙人', breed:'乌龟', emoji:'🐢', desc:'慢悠悠的长寿小智者', babyEmoji:'🐢', babyWord:'小龟宝', birthVerb:'产了蛋，孵出了小乌龟' },
+  fox: { name:'九尾', breed:'狐狸', emoji:'🦊', desc:'聪明狡黠的小灵精鬼', babyEmoji:'🦊', babyWord:'小狐崽', birthVerb:'生了一窝小狐狸' }
 };
 
 // ===== ALL SCENES (preserved from original) =====
@@ -1105,6 +1106,68 @@ const SCENES_POOL = {
     { text: '龟仙人居然学会了"敲碗"——用壳撞食盆发出声音要吃的！', choices: [
       { text: '🥒 每次敲碗就喂', effects: {health:-5,mood:15,energy:5}, response: '龟仙人发现了新技能！现在它每小时敲一次碗...你被一只乌龟PUA了。' },
       { text: '⏰ 定时喂食不被它操控', effects: {health:10,mood:-5,energy:5}, response: '龟仙人敲了半天没反应，默默停了下来。到了饭点你准时喂了它，它还是很开心。' }
+    ]}
+  ],
+  fox: [
+    { text: '你带了一份酱板鸭回来，九尾闻到味道眼睛都亮了！', choices: [
+      { text: '🍗 撕一块给它尝尝', effects: {health:-5,mood:15,energy:10}, response: '九尾叼过去狼吞虎咽！吃完还舔了舔嘴，眼巴巴看着你手里的。酱板鸭对狐狸来说有点咸，但它太开心了。' },
+      { text: '🚫 这个太辣太咸了不能吃', effects: {health:10,mood:-10,energy:0}, response: '九尾委屈地趴在地上，拿爪子挡住眼睛装可怜。整个房间都是酱板鸭的香味，对它来说是折磨。' }
+    ]},
+    { text: '九尾偷偷把你藏好的酱板鸭找出来了！嘴角还有酱汁...', choices: [
+      { text: '😤 批评它不能偷吃', effects: {health:5,mood:-15,energy:5}, response: '九尾被你说了一顿，尾巴夹起来低头认错。但你转身后它又悄悄去闻了闻残留的酱汁味...' },
+      { text: '🤣 算了已经吃了就吃了', effects: {health:-10,mood:10,energy:5}, response: '九尾见你没生气，开心得尾巴甩成了螺旋桨！下次它会偷得更理直气壮了。' }
+    ]},
+    { text: '九尾对着窗外发呆了好久，是不是在想什么？', choices: [
+      { text: '🤗 过去摸摸它的头', effects: {health:5,mood:15,energy:-5}, response: '九尾蹭了蹭你的手，轻轻叫了一声。它只是想有人陪。' },
+      { text: '🍖 拿点零食哄它', effects: {health:-5,mood:10,energy:5}, response: '九尾接过零食，眼神温柔地看了你一眼。吃的确实能治愈一切。' }
+    ]},
+    { text: '你在厨房做饭，九尾蹲在门口直勾勾盯着你的锅！', choices: [
+      { text: '🥩 给它煮一份白水鸡胸', effects: {health:15,mood:10,energy:5}, response: '九尾吃得干干净净，然后心满意足地趴在你脚边打盹。健康饮食才是真爱。' },
+      { text: '🍗 分它一块你的酱板鸭', effects: {health:-5,mood:15,energy:10}, response: '九尾叼着鸭腿跑到角落独享，吃完后毛都显得油光水滑。它爱死酱板鸭了。' }
+    ]},
+    { text: '九尾半夜叼了一只袜子给你，放在枕头旁边。', choices: [
+      { text: '💕 谢谢它的"礼物"', effects: {health:5,mood:15,energy:0}, response: '九尾听到你的夸奖，尾巴摇个不停。在狐狸的世界里，分享猎物是最高级的信任。' },
+      { text: '😅 轻轻放回鞋柜', effects: {health:5,mood:5,energy:0}, response: '九尾看着你把袜子放回去，歪了歪头。第二天它又叼了一只新的来...' }
+    ]},
+    { text: '九尾在沙发上挖了一个"洞穴"，把自己埋进靠枕里。', choices: [
+      { text: '📸 拍照记录这个瞬间', effects: {health:5,mood:10,energy:-5}, response: '九尾从靠枕堆里露出一双亮晶晶的眼睛，配上橙色的毛，简直太可爱了！' },
+      { text: '🛋️ 给它搭一个专属狐狸窝', effects: {health:10,mood:15,energy:-10}, response: '你用毯子和靠枕搭了一个小窝，九尾钻进去转了三圈，满意地趴下了。从此这里就是它的地盘。' }
+    ]},
+    { text: '隔壁邻居来串门，九尾躲在桌子底下不出来。', choices: [
+      { text: '🦊 让它慢慢适应', effects: {health:5,mood:5,energy:5}, response: '九尾在桌子底下观察了半小时，终于探出头闻了闻客人的鞋。它在用自己的方式交朋友。' },
+      { text: '🍖 用零食引它出来见客', effects: {health:-5,mood:10,energy:-5}, response: '九尾为了零食出来了，但一直紧贴着你的腿不肯离开。胆小鬼，但是你的胆小鬼。' }
+    ]},
+    { text: '你发现九尾学会了开抽屉！它把你的零食全翻出来了。', choices: [
+      { text: '🔒 给抽屉装上锁', effects: {health:10,mood:-10,energy:-5}, response: '九尾对着打不开的抽屉研究了一下午，最后趴在抽屉前面叹了口气。你赢了。' },
+      { text: '🧠 佩服它的智商', effects: {health:-5,mood:15,energy:5}, response: '九尾发现你不生气，胆子更大了。第二天它学会了开冰箱...狐狸的学习能力太可怕了。' }
+    ]},
+    { text: '天冷了，九尾用大尾巴把自己卷成一团。', choices: [
+      { text: '🧣 给它盖一条小毯子', effects: {health:10,mood:10,energy:5}, response: '九尾在毯子里只露出鼻子，暖呼呼的。大尾巴从毯子边上露出来，一摇一摇的。' },
+      { text: '🤗 把它抱到被窝里', effects: {health:5,mood:15,energy:5}, response: '九尾钻进被窝，用毛茸茸的大尾巴盖住你的脚。你从来没觉得冬天这么暖和过。' }
+    ]},
+    { text: '你带九尾出门散步，它突然对着树丛竖起耳朵不动了！', choices: [
+      { text: '🔍 跟它一起去看看', effects: {health:5,mood:15,energy:-10}, response: '原来是一只小松鼠！九尾盯着看了好久，尾巴兴奋地左右摇摆。它的狩猎本能被唤醒了，但只是看看。' },
+      { text: '🦮 拉着它继续走', effects: {health:5,mood:-5,energy:-5}, response: '九尾恋恋不舍地回头看了好几次，耳朵一直竖着。但它还是乖乖跟你走了。好孩子。' }
+    ]},
+    { text: '九尾把你刚带回来的酱板鸭包装纸叼走了，在上面打滚！', choices: [
+      { text: '🤣 让它玩个够', effects: {health:5,mood:15,energy:-5}, response: '九尾在包装纸上蹭来蹭去，满身都是酱板鸭的味道。它觉得自己闻起来棒极了！' },
+      { text: '🚿 给它洗个澡', effects: {health:10,mood:-10,energy:-10}, response: '九尾浑身湿漉漉地瞪着你，表情在说：你毁了我精心打造的香水！' }
+    ]},
+    { text: '你在吃酱板鸭，九尾坐在对面一动不动看着你，眼睛跟着鸭腿移动。', choices: [
+      { text: '🍗 撕一小块不辣的给它', effects: {health:-5,mood:15,energy:10}, response: '九尾轻轻地从你手里接过去，慢慢品尝。它吃东西的样子特别优雅，完全不像偷吃时的狼吞虎咽。' },
+      { text: '🥩 给它准备专属的无盐鸭肉', effects: {health:15,mood:10,energy:5}, response: '你专门煮了无调料的鸭肉给它。九尾吃了一口，又看看你碗里的酱板鸭，表情是——差点意思，但谢谢你。' }
+    ]},
+    { text: '九尾叼着你的拖鞋站在门口，好像在说"该出门了"。', choices: [
+      { text: '🌳 带它去公园跑一圈', effects: {health:10,mood:15,energy:-15}, response: '九尾在公园里撒了欢，跑得飞快！路人都在看这只漂亮的狐狸。它享受被注目的感觉。' },
+      { text: '🏠 今天太累了改天吧', effects: {health:5,mood:-10,energy:10}, response: '九尾把拖鞋放下，默默走回窝里趴着。但那个委屈的小眼神让你内疚了一整天...' }
+    ]},
+    { text: '你发现九尾居然会"藏食物"——它把没吃完的零食埋到花盆里了！', choices: [
+      { text: '🌱 把食物挖出来清理掉', effects: {health:10,mood:-5,energy:-5}, response: '九尾看着你挖出它的宝贝，一脸心痛。那是它留给明天的早餐啊...' },
+      { text: '🦊 给它一个专门的藏食盒', effects: {health:10,mood:15,energy:0}, response: '九尾有了自己的"保险柜"！它每天把最好吃的藏进去，时不时去检查一下。小财迷。' }
+    ]},
+    { text: '九尾最近学会了一个新技能：歪头杀。每次你拿着酱板鸭它就歪头看你。', choices: [
+      { text: '🍗 抵挡不住给它一块', effects: {health:-5,mood:15,energy:10}, response: '九尾吃到鸭肉后得意地摇尾巴。它已经完全掌握了用颜值换食物的技能。' },
+      { text: '💪 保持冷静坚决不给', effects: {health:10,mood:-5,energy:5}, response: '九尾歪了三个角度都没用，最后放弃了，趴在地上叹气。但你的心也碎了...' }
     ]}
   ]
 };
