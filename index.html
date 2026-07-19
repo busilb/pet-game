@@ -1,0 +1,2419 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Pet Island - Pet Raising Master</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-green: #B8D8B0;
+  --bg-green-dark: #9BC494;
+  --cream: #FFF8E7;
+  --cream-dark: #F5EDDA;
+  --wood: #D4C5A9;
+  --wood-dark: #B8A88A;
+  --leaf: #7BB661;
+  --leaf-dark: #5E9A46;
+  --gold: #F5C542;
+  --gold-dark: #D4A520;
+  --brown: #5C4033;
+  --brown-light: #8B7355;
+  --sky: #89CFF0;
+  --pink: #F4A6B8;
+  --red: #E07060;
+  --orange: #F0A050;
+  --blue: #60A0D0;
+  --shadow: rgba(92, 64, 51, 0.12);
+  --shadow-md: rgba(92, 64, 51, 0.18);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-green);
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(255,255,255,0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(255,255,255,0.1) 0%, transparent 40%);
+  min-height: 100vh;
+  color: var(--brown);
+  overflow-x: hidden;
+}
+
+.bg-pattern {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 10 C25 5, 15 8, 15 18 C15 25, 25 32, 30 35 C35 32, 45 25, 45 18 C45 8, 35 5, 30 10Z' fill='%235C4033'/%3E%3C/svg%3E");
+  background-size: 60px 60px;
+}
+
+/* ===== LOADING SCREEN ===== */
+.loading-screen {
+  position: fixed; inset: 0; z-index: 1000;
+  background: var(--bg-green);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  transition: opacity 0.6s ease;
+}
+.loading-screen.hide { opacity: 0; pointer-events: none; }
+.loading-leaf {
+  width: 60px; height: 60px;
+  animation: leafSpin 1.2s ease-in-out infinite;
+}
+.loading-leaf::before {
+  content: '🍃'; font-size: 50px; display: block;
+}
+@keyframes leafSpin {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.1); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+.loading-text {
+  margin-top: 16px; font-size: 16px; font-weight: 500;
+  color: var(--leaf-dark); letter-spacing: 2px;
+}
+
+/* ===== MAIN LAYOUT ===== */
+.app-wrapper {
+  position: relative; z-index: 1;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 12px;
+  min-height: 100vh;
+}
+
+.game-header {
+  background: linear-gradient(135deg, var(--leaf) 0%, var(--leaf-dark) 100%);
+  border-radius: 18px 18px 0 0;
+  padding: 16px 20px;
+  color: #fff;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 2px 8px var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+.game-header::after {
+  content: ''; position: absolute; right: -20px; top: -20px;
+  width: 80px; height: 80px; border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+}
+.game-header h1 {
+  font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 8px;
+}
+.header-actions { display: flex; gap: 8px; }
+.header-btn {
+  background: rgba(255,255,255,0.2); border: none; color: #fff;
+  width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+  font-size: 16px; display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s;
+}
+.header-btn:hover { background: rgba(255,255,255,0.35); }
+
+.game-body {
+  background: var(--cream);
+  border-radius: 0 0 18px 18px;
+  box-shadow: 0 8px 24px var(--shadow-md);
+  overflow: hidden;
+}
+
+/* Desktop two-column layout */
+.game-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 70vh;
+}
+
+@media (min-width: 768px) {
+  .game-layout.has-sidebar {
+    grid-template-columns: 260px 1fr;
+  }
+}
+
+/* ===== SIDEBAR (PC) ===== */
+.sidebar {
+  background: var(--cream-dark);
+  border-right: 3px solid var(--wood);
+  padding: 20px 16px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+
+.sidebar-pet {
+  text-align: center; padding: 16px 0;
+}
+.sidebar-pet-emoji {
+  font-size: 72px; display: block;
+  animation: petBounce 3s ease-in-out infinite;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+}
+@keyframes petBounce {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.sidebar-pet-name {
+  font-size: 18px; font-weight: 700; margin-top: 4px; color: var(--brown);
+}
+.sidebar-pet-breed {
+  font-size: 12px; color: var(--brown-light); margin-top: 2px;
+}
+
+.sidebar-section {
+  background: var(--cream);
+  border: 2px solid var(--wood);
+  border-radius: 12px;
+  padding: 12px;
+}
+.sidebar-section-title {
+  font-size: 11px; font-weight: 700; color: var(--leaf-dark);
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;
+  display: flex; align-items: center; gap: 4px;
+}
+
+/* Stats in sidebar */
+.stat-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+}
+.stat-row:last-child { margin-bottom: 0; }
+.stat-icon { font-size: 16px; width: 24px; text-align: center; }
+.stat-name { font-size: 12px; color: var(--brown-light); width: 32px; }
+.stat-bar-wrap {
+  flex: 1; height: 12px; background: rgba(0,0,0,0.06);
+  border-radius: 6px; overflow: hidden; position: relative;
+}
+.stat-bar-fill {
+  height: 100%; border-radius: 6px; transition: width 0.8s ease;
+}
+.stat-bar-fill.health { background: linear-gradient(90deg, #E07060, #F08070); }
+.stat-bar-fill.mood { background: linear-gradient(90deg, #F0A050, #F5C060); }
+.stat-bar-fill.energy { background: linear-gradient(90deg, #60A0D0, #80C0E0); }
+.stat-val {
+  font-size: 12px; font-weight: 700; width: 28px; text-align: right;
+}
+
+/* Level display in sidebar */
+.level-display {
+  text-align: center;
+}
+.level-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+  color: var(--brown); padding: 4px 14px; border-radius: 20px;
+  font-size: 13px; font-weight: 700;
+  box-shadow: 0 2px 6px rgba(245, 197, 66, 0.3);
+}
+.level-progress-wrap {
+  margin-top: 8px; height: 8px; background: rgba(0,0,0,0.06);
+  border-radius: 4px; overflow: hidden;
+}
+.level-progress-fill {
+  height: 100%; border-radius: 4px; transition: width 0.8s ease;
+  background: linear-gradient(90deg, var(--gold), var(--gold-dark));
+}
+.level-next-info {
+  font-size: 10px; color: var(--brown-light); margin-top: 4px;
+}
+
+/* Season display */
+.season-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
+}
+.season-spring { background: #E8F5E9; color: #2E7D32; }
+.season-summer { background: #FFF3E0; color: #E65100; }
+.season-autumn { background: #FBE9E7; color: #BF360C; }
+.season-winter { background: #E3F2FD; color: #1565C0; }
+
+/* Achievements in sidebar */
+.achievements-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+}
+.achievement-slot {
+  width: 100%; aspect-ratio: 1; border-radius: 8px;
+  background: rgba(0,0,0,0.04); border: 2px dashed var(--wood);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; transition: all 0.3s;
+}
+.achievement-slot.earned {
+  background: linear-gradient(135deg, #FFF8E7, #FFECB3);
+  border: 2px solid var(--gold);
+  box-shadow: 0 1px 4px rgba(245, 197, 66, 0.3);
+}
+.achievement-slot.empty { opacity: 0.4; }
+
+/* ===== SICK STATUS ===== */
+.sick-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: linear-gradient(135deg, #FFEBEE, #FFCDD2);
+  color: #C62828; padding: 4px 12px; border-radius: 20px;
+  font-size: 12px; font-weight: 700;
+  animation: sickPulse 2s ease-in-out infinite;
+  margin-top: 6px;
+}
+@keyframes sickPulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+.sick-banner {
+  background: linear-gradient(135deg, #FFEBEE, #FFCDD2);
+  border: 2px solid #E57373;
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  text-align: center;
+  font-size: 14px;
+  color: #C62828;
+  font-weight: 600;
+  animation: bannerSlide 0.6s ease-out;
+}
+.stat-bar-fill.health.sick-bar {
+  background: linear-gradient(90deg, #C62828, #E57373) !important;
+  animation: sickBarPulse 1.5s ease-in-out infinite;
+}
+@keyframes sickBarPulse {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* ===== AGING/FAREWELL ===== */
+.aging-tag {
+  background: linear-gradient(135deg, #E8E0D0, #D8D0C0);
+  color: var(--brown); padding: 4px 12px; border-radius: 20px;
+  font-size: 12px; font-weight: 600;
+}
+.farewell-emoji {
+  font-size: 80px; display: block; margin: 10px 0;
+  filter: grayscale(30%);
+}
+
+/* ===== MOBILE SIDEBAR (horizontal strip) ===== */
+@media (max-width: 767px) {
+  .sidebar {
+    border-right: none;
+    border-bottom: 3px solid var(--wood);
+    padding: 14px;
+    gap: 10px;
+  }
+  .sidebar-pet { padding: 8px 0; }
+  .sidebar-pet-emoji { font-size: 56px; }
+  .sidebar-stats-section {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  }
+  .achievements-grid { grid-template-columns: repeat(5, 1fr); }
+}
+
+/* ===== MAIN CONTENT AREA ===== */
+.main-content {
+  padding: 20px;
+  display: flex; flex-direction: column;
+}
+
+.content-area {
+  animation: contentFadeIn 0.4s ease-out;
+}
+@keyframes contentFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Scene header */
+.scene-header {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;
+}
+.round-tag {
+  background: var(--leaf); color: #fff;
+  padding: 4px 12px; border-radius: 20px;
+  font-size: 12px; font-weight: 600;
+}
+.scene-tag {
+  background: var(--gold); color: var(--brown);
+  padding: 4px 12px; border-radius: 20px;
+  font-size: 12px; font-weight: 600;
+}
+
+.progress-dots {
+  display: flex; gap: 6px; margin-bottom: 14px;
+}
+.dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--wood); transition: all 0.3s;
+}
+.dot.active { background: var(--leaf); transform: scale(1.2); }
+.dot.done { background: var(--gold); }
+
+/* Scene card */
+.scene-card {
+  background: #fff;
+  border: 2px solid var(--wood);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 14px;
+  position: relative;
+  line-height: 1.7;
+  font-size: 15px;
+}
+.scene-card::before {
+  content: '🍃';
+  position: absolute; top: -8px; left: 14px;
+  font-size: 16px;
+}
+.scene-card.event-card {
+  border-color: var(--gold);
+  background: #FFFDE7;
+}
+.scene-card.event-card::before { content: '⚡'; }
+
+/* Choices */
+.choices-list { display: flex; flex-direction: column; gap: 10px; }
+.choice-btn {
+  padding: 14px 16px;
+  background: #fff;
+  border: 2px solid var(--wood);
+  border-radius: 14px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.25s;
+  text-align: left;
+  color: var(--brown);
+  font-family: inherit;
+  line-height: 1.5;
+  position: relative;
+  overflow: hidden;
+}
+.choice-btn::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(123,182,97,0.05), rgba(245,197,66,0.05));
+  opacity: 0; transition: opacity 0.25s;
+}
+.choice-btn:hover, .choice-btn:active {
+  border-color: var(--leaf);
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px var(--shadow);
+}
+.choice-btn:hover::after { opacity: 1; }
+
+/* Response card */
+.response-card {
+  background: linear-gradient(135deg, #F0F8E8, #E8F5E0);
+  border: 2px solid var(--leaf);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 14px;
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+/* Stat changes inline */
+.stat-changes {
+  display: flex; gap: 12px; justify-content: center;
+  margin: 12px 0; flex-wrap: wrap;
+}
+.stat-change {
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 12px; border-radius: 20px;
+  font-size: 13px; font-weight: 600;
+  animation: statPop 0.5s ease-out;
+}
+@keyframes statPop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.stat-change.up { background: #E8F5E9; color: #2E7D32; }
+.stat-change.down { background: #FFEBEE; color: #C62828; }
+.stat-change.neutral { background: #F5F5F5; color: #757575; }
+
+/* Level change notification */
+.level-change-banner {
+  text-align: center; padding: 14px; margin: 12px 0;
+  border-radius: 14px; font-size: 16px; font-weight: 700;
+  animation: bannerSlide 0.6s ease-out;
+}
+@keyframes bannerSlide {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.level-change-banner.up {
+  background: linear-gradient(135deg, #FFF8E1, #FFECB3);
+  color: var(--gold-dark); border: 2px solid var(--gold);
+}
+.level-change-banner.down {
+  background: linear-gradient(135deg, #FFEBEE, #FFCDD2);
+  color: var(--red); border: 2px solid var(--red);
+}
+
+/* Action button */
+.action-btn {
+  display: block; width: 100%; padding: 14px;
+  background: linear-gradient(135deg, var(--leaf), var(--leaf-dark));
+  color: #fff; border: none; border-radius: 14px;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+  font-family: inherit; transition: all 0.25s;
+  box-shadow: 0 3px 10px rgba(123,182,97,0.3);
+  margin-top: 10px;
+}
+.action-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(123,182,97,0.4); }
+.action-btn.gold {
+  background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+  color: var(--brown);
+  box-shadow: 0 3px 10px rgba(245,197,66,0.3);
+}
+.action-btn.gold:hover { box-shadow: 0 5px 15px rgba(245,197,66,0.4); }
+.action-btn.secondary {
+  background: #fff; color: var(--brown); border: 2px solid var(--wood);
+  box-shadow: none;
+}
+.action-btn.secondary:hover { border-color: var(--leaf); }
+
+/* ===== PET SELECT SCREEN ===== */
+.welcome-title {
+  text-align: center; margin-bottom: 20px;
+}
+.welcome-title h2 {
+  font-size: 22px; font-weight: 900; color: var(--brown);
+  margin-bottom: 4px;
+}
+.welcome-title p {
+  font-size: 13px; color: var(--brown-light);
+}
+
+.pet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+@media (max-width: 500px) {
+  .pet-grid { grid-template-columns: 1fr; }
+}
+
+.pet-card {
+  background: #fff;
+  border: 2px solid var(--wood);
+  border-radius: 16px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.pet-card::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(123,182,97,0.0), rgba(123,182,97,0.06));
+  opacity: 0; transition: opacity 0.3s;
+}
+.pet-card:hover, .pet-card:active {
+  border-color: var(--leaf);
+  transform: translateY(-4px);
+  box-shadow: 0 6px 16px var(--shadow);
+}
+.pet-card:hover::after { opacity: 1; }
+.pet-card-emoji { font-size: 48px; margin-bottom: 8px; display: block; }
+.pet-card-name { font-size: 16px; font-weight: 700; color: var(--brown); }
+.pet-card-breed { font-size: 12px; color: var(--brown-light); margin: 2px 0; }
+.pet-card-desc { font-size: 11px; color: var(--brown-light); opacity: 0.8; }
+
+/* ===== ROUND RESULT SCREEN ===== */
+.result-container { text-align: center; }
+.result-emoji { font-size: 80px; display: block; margin: 10px 0; }
+.result-title { font-size: 22px; font-weight: 900; margin: 8px 0; }
+
+.rank-display {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 24px; border-radius: 30px;
+  font-size: 28px; font-weight: 900; margin: 12px 0;
+}
+.rank-S { background: linear-gradient(135deg, #FFD700, #FFA000); color: #fff; box-shadow: 0 0 20px rgba(255,215,0,0.4); }
+.rank-A { background: linear-gradient(135deg, #FF6B6B, #EE5A24); color: #fff; }
+.rank-B { background: linear-gradient(135deg, #74b9ff, #0984e3); color: #fff; }
+.rank-C { background: linear-gradient(135deg, #a29bfe, #6c5ce7); color: #fff; }
+.rank-D { background: linear-gradient(135deg, #636e72, #b2bec3); color: #fff; }
+
+.stars-display { font-size: 28px; margin: 8px 0; letter-spacing: 4px; }
+.comment-box {
+  background: #fff; border: 2px solid var(--wood); border-radius: 14px;
+  padding: 14px; margin: 14px 0; font-size: 14px; line-height: 1.6;
+  color: var(--brown);
+}
+
+/* ===== FINAL SUMMARY ===== */
+.summary-stats {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 14px 0;
+}
+.summary-stat {
+  background: #fff; border: 2px solid var(--wood); border-radius: 12px;
+  padding: 12px; text-align: center;
+}
+.summary-stat-value { font-size: 24px; font-weight: 900; color: var(--leaf-dark); }
+.summary-stat-label { font-size: 11px; color: var(--brown-light); margin-top: 2px; }
+
+.personality-card {
+  background: linear-gradient(135deg, #FFF8E7, #FFECB3);
+  border: 2px solid var(--gold);
+  border-radius: 14px;
+  padding: 16px;
+  margin: 14px 0;
+  text-align: center;
+}
+.personality-title { font-size: 11px; color: var(--gold-dark); font-weight: 700; letter-spacing: 1px; }
+.personality-name { font-size: 20px; font-weight: 900; color: var(--brown); margin: 4px 0; }
+.personality-desc { font-size: 13px; color: var(--brown-light); line-height: 1.5; }
+
+/* ===== HIBERNATE ===== */
+.hibernate-card {
+  background: #FFFDE7; border: 2px solid var(--gold);
+  border-radius: 14px; padding: 16px; margin: 12px 0;
+  text-align: center; font-size: 14px; color: #8D6E00;
+}
+
+/* ===== ACHIEVEMENT POPUP ===== */
+.achievement-popup {
+  position: fixed; top: 20px; right: 20px; z-index: 500;
+  background: linear-gradient(135deg, #FFF8E7, #FFECB3);
+  border: 2px solid var(--gold);
+  border-radius: 14px; padding: 14px 20px;
+  box-shadow: 0 8px 24px rgba(245,197,66,0.3);
+  display: flex; align-items: center; gap: 10px;
+  animation: achieveSlide 0.5s ease-out, achieveFade 0.5s ease-in 2.5s forwards;
+  max-width: 300px;
+}
+@keyframes achieveSlide {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes achieveFade {
+  to { opacity: 0; transform: translateY(-20px); }
+}
+.achievement-popup-icon { font-size: 32px; }
+.achievement-popup-text { font-size: 12px; color: var(--brown-light); }
+.achievement-popup-name { font-size: 14px; font-weight: 700; color: var(--brown); }
+
+/* ===== CONFETTI ===== */
+.confetti-container {
+  position: fixed; inset: 0; z-index: 400; pointer-events: none; overflow: hidden;
+}
+.confetti-piece {
+  position: absolute; top: -20px;
+  width: 10px; height: 10px;
+  animation: confettiFall 3s ease-in forwards;
+}
+@keyframes confettiFall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+/* ===== SEASON BACKGROUNDS ===== */
+body.season-spring { background: #B8D8B0; }
+body.season-summer { background: #C8D8A0; }
+body.season-autumn { background: #D8C8A0; }
+body.season-winter { background: #B8C8D8; }
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--wood); border-radius: 3px; }
+
+/* Mobile adjustments */
+@media (max-width: 767px) {
+  .app-wrapper { padding: 0; }
+  .game-header { border-radius: 0; }
+  .game-body { border-radius: 0; }
+  .main-content { padding: 14px; }
+  .pet-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 400px) {
+  .pet-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="bg-pattern"></div>
+
+<div class="loading-screen" id="loadingScreen">
+  <div class="loading-leaf"></div>
+  <div class="loading-text">Loading...</div>
+</div>
+
+<div class="app-wrapper">
+  <div class="game-header">
+    <h1>🏝️ Pet Island</h1>
+    <div class="header-actions">
+      <button class="header-btn" onclick="toggleAchievements()" title="Achievements">🏅</button>
+      <button class="header-btn" onclick="confirmRestart()" title="Restart">🔄</button>
+    </div>
+  </div>
+  <div class="game-body">
+    <div class="game-layout" id="gameLayout">
+      <div class="main-content" id="mainContent"></div>
+    </div>
+  </div>
+</div>
+
+<div id="achievementPopups"></div>
+
+<script>
+// ===== LIFESPAN =====
+const MAX_LIFESPAN = 24; // 2 years = 24 rounds (each season = 3 rounds, 4 seasons/year)
+const REPRODUCE_MIN = 16;
+const REPRODUCE_MAX = 20;
+const AGING_START = 20;
+
+// ===== PET LEVELS (10 levels, AC-themed) =====
+const PET_LEVELS = [
+  { name: '新来岛民', emoji: '🏝️', min: 0, title: '刚刚踏上小岛' },
+  { name: '帐篷露营者', emoji: '⛺', min: 60, title: '安营扎寨了' },
+  { name: '小窝主人', emoji: '🏠', min: 100, title: '有了温馨的家' },
+  { name: '好邻居', emoji: '🍀', min: 130, title: '融入了社区' },
+  { name: '小镇帮手', emoji: '⭐', min: 160, title: '热心助人' },
+  { name: '岛屿设计师', emoji: '✨', min: 190, title: '开始创造美好' },
+  { name: 'K.K.粉丝', emoji: '🎵', min: 215, title: '文艺生活达人' },
+  { name: 'Nook VIP', emoji: '👑', min: 240, title: '岛上名人' },
+  { name: '岛屿之星', emoji: '🏆', min: 260, title: '近乎传说' },
+  { name: '传说岛民', emoji: '🌈', min: 280, title: '最高荣耀！' }
+];
+
+// ===== ACHIEVEMENTS =====
+const ACHIEVEMENTS = [
+  { id: 'first_steps', name: '初来乍到', emoji: '👣', desc: '完成第一轮养成' },
+  { id: 'best_friend', name: '最佳伙伴', emoji: '💕', desc: '心情达到90以上' },
+  { id: 'health_nut', name: '健康达人', emoji: '💪', desc: '健康达到90以上' },
+  { id: 'energizer', name: '活力充沛', emoji: '⚡', desc: '体力达到90以上' },
+  { id: 'balance', name: '完美平衡', emoji: '⚖️', desc: '三项属性均达70+' },
+  { id: 'level_up', name: '第一次晋级', emoji: '📈', desc: '宠物首次升级' },
+  { id: 'comeback', name: '逆风翻盘', emoji: '🔥', desc: 'D评后下一轮获A+' },
+  { id: 'whisperer', name: '宠物达人', emoji: '🌟', desc: '达到5级以上' },
+  { id: 'legend', name: '传说缔造者', emoji: '🌈', desc: '达到最高等级' },
+  { id: 'seasons', name: '四季轮回', emoji: '🍂', desc: '经历所有四个季节' },
+  { id: 'healer', name: '妙手回春', emoji: '💊', desc: '治愈宠物的疾病' },
+  { id: 'parent', name: '新生命', emoji: '🥚', desc: '宠物成功繁殖后代' },
+  { id: 'generation2', name: '世代传承', emoji: '👪', desc: '养育第二代宠物' },
+  { id: 'perfect_round', name: '完美轮次', emoji: '💎', desc: '单轮获得S评价' },
+  { id: 'collector', name: '收藏家', emoji: '🎪', desc: '获得6个以上成就' }
+];
+
+// ===== SEASONS =====
+const SEASONS = [
+  { name: '春天', emoji: '🌸', class: 'season-spring', bonus: null, bonusText: '' },
+  { name: '夏天', emoji: '☀️', class: 'season-summer', bonus: 'energy', bonusText: '体力+5' },
+  { name: '秋天', emoji: '🍁', class: 'season-autumn', bonus: 'mood', bonusText: '心情+5' },
+  { name: '冬天', emoji: '❄️', class: 'season-winter', bonus: 'health', bonusText: '健康+5' }
+];
+
+// ===== PETS =====
+const PETS = {
+  husky: { name:'大毛', breed:'哈士奇', emoji:'🐕', desc:'活力满满的拆家小能手', babyEmoji:'🐶', babyWord:'小狗崽', birthVerb:'生了一窝小狗' },
+  cat: { name:'橘座大人', breed:'橘猫', emoji:'🐱', desc:'圆滚滚的干饭小天才', babyEmoji:'🐱', babyWord:'小猫咪', birthVerb:'生了一窝小猫' },
+  myna: { name:'话痨', breed:'八哥', emoji:'🐦', desc:'能说会道的社恐小鸟', babyEmoji:'🐣', babyWord:'小鸟宝宝', birthVerb:'下了一窝蛋，孵出了小鸟' },
+  snake: { name:'小青', breed:'蛇', emoji:'🐍', desc:'神秘安静的冷血小伙伴', babyEmoji:'🐍', babyWord:'小蛇宝宝', birthVerb:'产了一窝蛋，孵出了小蛇' },
+  parrot: { name:'蓝莓', breed:'鹦鹉', emoji:'🦜', desc:'五颜六色的话唠小可爱', babyEmoji:'🐣', babyWord:'小鹦鹉', birthVerb:'下了蛋，孵出了小鹦鹉' },
+  duck: { name:'小饼干', breed:'鸭子', emoji:'🦆', desc:'嘎嘎叫的软萌小可爱', babyEmoji:'🐣', babyWord:'小鸭宝', birthVerb:'下了一窝蛋，孵出了小鸭子' },
+  turtle: { name:'龟仙人', breed:'乌龟', emoji:'🐢', desc:'慢悠悠的长寿小智者', babyEmoji:'🐢', babyWord:'小龟宝', birthVerb:'产了蛋，孵出了小乌龟' }
+};
+
+// ===== ALL SCENES (preserved from original) =====
+const SCENES_POOL = {
+  husky: [
+    { text: '大毛闻到饭盆里的狗粮特别香，在你脚边转圈圈！', choices: [
+      { text: '🍽️ 直接把饭盆端走', effects: {health:5,mood:-15,energy:5}, response: '大毛一脸懵：我的饭呢？！满屋子找饭盆，还把拖鞋叼走泄愤...' },
+      { text: '😋 浅尝一口', effects: {health:1,mood:10,energy:-10}, response: '你尝了一口...味道还行？大毛歪着头：咱俩谁是狗？' }
+    ]},
+    { text: '大毛在家里疯跑，沙发垫子被它叼走了！', choices: [
+      { text: '🏃 追着它满屋子跑', effects: {health:5,mood:10,energy:-15}, response: '你和大毛绕客厅跑了三圈，它玩得特别开心！' },
+      { text: '🧸 用玩具把垫子换回来', effects: {health:5,mood:5,energy:-5}, response: '用一个球成功换回了垫子。大毛：这个交易可以接受。' }
+    ]},
+    { text: '遛狗时间到！大毛在门口疯狂摇尾巴。', choices: [
+      { text: '🏞️ 去公园草地撒欢', effects: {health:10,mood:15,energy:-10}, response: '大毛在草地上打了十个滚，交了三个新朋友！' },
+      { text: '🏠 在楼下转转就行', effects: {health:5,mood:-5,energy:-3}, response: '大毛：就这？幽怨的眼神一路拽你往公园方向走。' }
+    ]},
+    { text: '大毛偷偷叼走了你的袜子藏到狗窝里！', choices: [
+      { text: '😤 严肃批评它', effects: {health:5,mood:-10,energy:5}, response: '大毛耳朵耷拉下来装委屈...你转身后它又偷偷去闻袜子了。' },
+      { text: '🤣 再给它一只凑一双', effects: {health:-5,mood:15,energy:0}, response: '大毛拿到两只袜子开心坏了，叼着满屋子炫耀！' }
+    ]},
+    { text: '大毛洗完澡在客厅疯狂甩水！', choices: [
+      { text: '💨 用吹风机给它吹干', effects: {health:10,mood:-5,energy:-10}, response: '大毛享受起来了，毛吹完蓬松得像个球！' },
+      { text: '☀️ 让它到阳台晒干', effects: {health:5,mood:10,energy:5}, response: '大毛惬意地晒太阳，时不时抖抖身子。' }
+    ]},
+    { text: '大毛在门口对着快递员狂叫！快递员吓得不敢进来。', choices: [
+      { text: '🤝 拉住大毛道歉', effects: {health:5,mood:-5,energy:-5}, response: '大毛被你拉住后还在低声呜呜，快递员小心翼翼放下包裹就跑了...' },
+      { text: '🦮 让大毛去"迎接"', effects: {health:5,mood:15,energy:-10}, response: '大毛冲过去...结果舔了快递员一脸！原来是友好的。' }
+    ]},
+    { text: '大毛半夜突然对着空气叫！你被吓醒了...', choices: [
+      { text: '🔦 起来检查一下', effects: {health:5,mood:5,energy:-10}, response: '原来是窗外一只猫经过，大毛在宣示领地。虚惊一场！' },
+      { text: '😴 假装没听到继续睡', effects: {health:5,mood:-10,energy:10}, response: '大毛叫了五分钟没人理，委屈地趴在门口守了一夜。' }
+    ]},
+    { text: '你买了新玩具给大毛，但它只对包装盒感兴趣...', choices: [
+      { text: '📦 让它玩盒子吧', effects: {health:5,mood:15,energy:-5}, response: '大毛把盒子咬碎了，玩得不亦乐乎。新玩具在角落积灰。' },
+      { text: '🎾 耐心教它玩新玩具', effects: {health:5,mood:5,energy:-10}, response: '教了半小时终于会了！但它还是更喜欢盒子...' }
+    ]},
+    { text: '大毛看到别的狗在遛弯，拼命拽着绳子想过去玩！', choices: [
+      { text: '🐕 带它过去交朋友', effects: {health:5,mood:15,energy:-10}, response: '大毛和新朋友疯玩起来，两只哈士奇一起拆了一个花坛...' },
+      { text: '🚫 拉紧绳子继续走', effects: {health:5,mood:-10,energy:-5}, response: '大毛恋恋不舍地回头看了三次，拖着脚步不情愿地跟你走了。' }
+    ]},
+    { text: '你在做瑜伽，大毛以为你在跟它玩，扑了上来！', choices: [
+      { text: '🐶 干脆和它一起运动', effects: {health:10,mood:15,energy:-15}, response: '大毛兴奋地在你旁边跑来跑去，你的瑜伽变成了障碍跑。' },
+      { text: '🚪 把它关到另一个房间', effects: {health:5,mood:-15,energy:5}, response: '大毛在门外挠了半小时门，你根本没法专心...' }
+    ]},
+    { text: '大毛把你刚洗好的衣服从晾衣架上拽下来了！', choices: [
+      { text: '😤 指着衣服教育它', effects: {health:5,mood:-10,energy:-5}, response: '大毛低头认错...然后趁你转身又拽了一件下来当玩具。' },
+      { text: '🧺 把衣服收到它够不着的地方', effects: {health:5,mood:5,energy:-5}, response: '你把衣服转移到高处。大毛看看够不着，只好去咬沙发垫了...' }
+    ]},
+    { text: '带大毛去宠物店洗澡，它一到门口就开始往后退！', choices: [
+      { text: '🍖 用零食引诱它进去', effects: {health:10,mood:5,energy:-5}, response: '大毛犹豫了一下，为了零食勉强进去了。洗完后它抖了抖毛，其实还挺享受的。' },
+      { text: '💪 抱着它硬送进去', effects: {health:10,mood:-15,energy:-15}, response: '大毛50斤，你抱着它差点闪了腰。它在里面嚎了整个洗澡过程...' }
+    ]},
+    { text: '大毛学会了开冰箱门！你回家发现冰箱里的食物少了一半。', choices: [
+      { text: '🔒 给冰箱加个儿童锁', effects: {health:10,mood:-5,energy:-5}, response: '大毛对着打不开的冰箱门研究了一下午，最后放弃了。你赢了这一局。' },
+      { text: '🤷 也没吃啥贵的，算了', effects: {health:-10,mood:10,energy:5}, response: '大毛以后天天开冰箱自助餐...你的食物预算翻倍了。' }
+    ]},
+    { text: '天冷了，大毛居然学会了钻你的被窝！', choices: [
+      { text: '🛏️ 让它睡被窝里', effects: {health:5,mood:15,energy:5}, response: '大毛在被窝里打呼噜，声音比你爸还响。但抱着暖呼呼的狗真的很幸福。' },
+      { text: '🐕 给它买个狗狗电热毯', effects: {health:10,mood:5,energy:0}, response: '大毛在电热毯上趴得很舒服，但半夜还是偷偷溜进了你被窝...' }
+    ]},
+    { text: '大毛在花园里挖了一个大坑，满脸泥巴看着你！', choices: [
+      { text: '🌱 把坑填好，种上花', effects: {health:5,mood:-5,energy:-10}, response: '你刚填好坑，大毛又在旁边挖了一个新坑...这是它的快乐源泉。' },
+      { text: '🏗️ 给它划一块专属挖坑区', effects: {health:5,mood:15,energy:-5}, response: '大毛有了自己的挖坑乐园，挖得更带劲了！你的花园保住了。' }
+    ]}
+  ],
+  cat: [
+    { text: '橘座的体重有点超标了...零食该怎么处理？', choices: [
+      { text: '📦 把零食挂起来', effects: {health:10,mood:-10,energy:-10}, response: '橘座仰望着零食，眼神充满悲伤...' },
+      { text: '🙈 把零食藏起来', effects: {health:5,mood:-5,energy:-5}, response: '三分钟后，橘座已经找到了并在努力开柜门...' }
+    ]},
+    { text: '橘座体重还是控制不住！你决定帮它减肥：', choices: [
+      { text: '💆 给它做按摩', effects: {health:10,mood:10,energy:10}, response: '橘座舒服得呼噜噜直叫，但更不想动了，反而又胖了！' },
+      { text: '🏃 带它出去运动', effects: {health:15,mood:-5,energy:-15}, response: '橘座全程趴在地上抗议，表情写满了"我恨你"。' }
+    ]},
+    { text: '橘座不见了！最后发现它躲在沙发底下。', choices: [
+      { text: '👀 把它拽出来', effects: {health:5,mood:-10,energy:-10}, response: '橘座一脸不高兴，它本来在享受独处时光。' },
+      { text: '🐟 用小鱼干引诱它', effects: {health:-5,mood:15,energy:5}, response: '橘座飞速钻出来开心地吃...等等，减肥计划呢？' }
+    ]},
+    { text: '半夜三点，橘座突然在客厅疯跑！跑酷模式启动！', choices: [
+      { text: '😴 无视它继续睡', effects: {health:5,mood:5,energy:10}, response: '橘座跑了一会儿累了，跳上床缩在你脚边睡着了。' },
+      { text: '🧶 起来陪它玩', effects: {health:5,mood:15,energy:-15}, response: '玩了半小时它心满意足了。但你第二天起不来了...' }
+    ]},
+    { text: '橘座占领了你的键盘，趴着不肯走！', choices: [
+      { text: '📦 准备一个假键盘', effects: {health:5,mood:10,energy:-5}, response: '橘座对假键盘毫无兴趣，它要的是你的注意力。' },
+      { text: '🛏️ 抱它到猫窝', effects: {health:5,mood:-10,energy:-5}, response: '30秒后它又回来了，一屁股坐在回车键上。' }
+    ]},
+    { text: '你正在吃饭，橘座跳上桌盯着你的鱼！', choices: [
+      { text: '🐟 分它一小块', effects: {health:-5,mood:15,energy:5}, response: '橘座优雅地吃了鱼，然后用期待的眼神要求更多...' },
+      { text: '🚫 把它从桌上抱下去', effects: {health:5,mood:-15,energy:-5}, response: '橘座在地上仰头，发出最委屈的"喵"...' }
+    ]},
+    { text: '橘座把花盆打翻了，土撒了一地！', choices: [
+      { text: '🧹 默默收拾', effects: {health:5,mood:5,energy:-10}, response: '橘座有点心虚，过来蹭了蹭你的腿。' },
+      { text: '📸 先拍照留证据', effects: {health:5,mood:10,energy:-5}, response: '橘座的表情完美诠释了"不是我干的"。' }
+    ]},
+    { text: '下雨天，橘座趴在窗边看雨发呆。', choices: [
+      { text: '☕ 泡杯茶陪它看', effects: {health:5,mood:15,energy:5}, response: '一起安静看雨，偶尔它用爪子点点雨滴。很治愈。' },
+      { text: '🧶 用逗猫棒吸引它', effects: {health:5,mood:5,energy:-10}, response: '橘座瞟了一眼逗猫棒，继续看雨。今天它只想当文艺猫。' }
+    ]},
+    { text: '橘座学会了开门！半夜自己开门出去溜达了。', choices: [
+      { text: '🔒 赶紧把门锁换成圆形把手', effects: {health:10,mood:-5,energy:-5}, response: '橘座对着新把手研究了半天，暂时没法开了。但你知道它不会放弃的。' },
+      { text: '🌙 穿上衣服出去找它', effects: {health:5,mood:10,energy:-15}, response: '你在楼道里找到了橘座，它在隔壁家门口蹭门，试图去偷吃别人家的猫粮...' }
+    ]},
+    { text: '橘座看到镜子里的自己，炸毛了！', choices: [
+      { text: '🪞 把镜子挡住安慰它', effects: {health:5,mood:10,energy:-5}, response: '橘座平静下来了，但时不时还偷偷看那个方向，随时准备再战。' },
+      { text: '📹 哈哈太好笑了赶紧录像', effects: {health:5,mood:-5,energy:-5}, response: '橘座对着镜子横着走了五分钟。视频你存了，但橘座记住了你的笑声...它记仇。' }
+    ]},
+    { text: '你给橘座买了个猫爬架，但它只对包装箱感兴趣。', choices: [
+      { text: '📦 在箱子上放猫薄荷引导它上爬架', effects: {health:5,mood:10,energy:-5}, response: '橘座被猫薄荷吸引，顺便发现了爬架。现在它在爬架上睡觉，在箱子里玩。' },
+      { text: '🤷 箱子和爬架都留着', effects: {health:5,mood:15,energy:0}, response: '橘座在箱子和爬架之间反复横跳，两个都是它的快乐。客厅变成了猫咪游乐场。' }
+    ]},
+    { text: '橘座趴在你腿上呼噜了两小时，你腿麻了但不忍心动...', choices: [
+      { text: '🤫 忍着不动让它睡', effects: {health:-5,mood:15,energy:5}, response: '你的腿完全没了知觉，但看着橘座睡得那么香，你觉得值了。' },
+      { text: '🦵 轻轻把它挪到旁边', effects: {health:5,mood:-5,energy:5}, response: '橘座被吵醒了，迷迷糊糊看了你一眼，又换了个姿势睡了。它也没那么在意嘛。' }
+    ]},
+    { text: '你开了一罐金枪鱼罐头，橘座从三个房间之外飞奔而来！', choices: [
+      { text: '🐟 给它舔一下罐头盖', effects: {health:-5,mood:15,energy:5}, response: '橘座舔了罐头盖后意犹未尽，坐在你旁边眼睛一眨不眨地盯着你吃。' },
+      { text: '🚪 赶紧关上厨房门', effects: {health:5,mood:-15,energy:-5}, response: '橘座在门外惨叫了十五分钟，音量之大让你觉得自己是世界上最残忍的铲屎官。' }
+    ]},
+    { text: '橘座突然对你的拖鞋疯狂攻击，抱着拖鞋踢得飞起！', choices: [
+      { text: '👟 把拖鞋让给它当玩具', effects: {health:5,mood:15,energy:-5}, response: '橘座抱着拖鞋玩了一小时，最后心满意足地趴在拖鞋上睡着了。你光脚走了一晚上。' },
+      { text: '🐭 给它买个仿真老鼠玩具', effects: {health:5,mood:10,energy:-5}, response: '橘座对仿真老鼠的热情持续了五分钟...然后又去攻击拖鞋了。' }
+    ]},
+    { text: '家里来客人了，橘座居然主动跳到客人腿上撒娇！', choices: [
+      { text: '😊 让客人享受猫咪社交', effects: {health:5,mood:15,energy:-5}, response: '客人被橘座的撒娇术迷倒了！临走时说"我也想养一只橘猫"。橘座自豪地甩了甩尾巴。' },
+      { text: '😅 赶紧把橘座抱走怕客人不喜欢', effects: {health:5,mood:-10,energy:-5}, response: '橘座被抱走后一脸委屈。客人说"没关系我喜欢猫的"...你多此一举了。' }
+    ]}
+  ],
+  myna: [
+    { text: '话痨还不会说话，你想怎么教它？', choices: [
+      { text: '📱 放录音给它听', effects: {health:5,mood:5,energy:-5}, response: '话痨歪着头听半天：这个铁盒子在说什么？' },
+      { text: '🗣️ 自己亲自教', effects: {health:10,mood:-10,energy:-10}, response: '说了两小时"你好"，它终于回了一句...听起来像在骂你。' }
+    ]},
+    { text: '话痨会说话了！带它去哪展示？', choices: [
+      { text: '🏞️ 去公园表演', effects: {health:-10,mood:-20,energy:-30}, response: '话痨看到那么多人，瞬间紧张到不行...', checkHibernate:true },
+      { text: '🏠 在家给家人看', effects: {health:5,mood:10,energy:-5}, response: '话痨表演得很好！家人都鼓掌了。' }
+    ]},
+    { text: '话痨学了新话不停重复，邻居来投诉了！', choices: [
+      { text: '🤫 盖上笼布让它安静', effects: {health:5,mood:-15,energy:10}, response: '话痨安静了，但透过笼布能感受到它幽怨的目光...' },
+      { text: '😄 带邻居来看表演', effects: {health:5,mood:15,energy:-10}, response: '邻居看完成了粉丝！还问你在哪买的。' }
+    ]},
+    { text: '话痨学会了模仿门铃声，你每次都被骗！', choices: [
+      { text: '🔇 换一个不同门铃', effects: {health:5,mood:5,energy:-5}, response: '三天后话痨又学会了新门铃声。它是故意的。' },
+      { text: '🎭 教它说"来客人啦"', effects: {health:5,mood:15,energy:-10}, response: '话痨学会后每次有人按门铃都大喊"来客人啦！"' }
+    ]},
+    { text: '话痨学会了手机铃声，还会说"喂"！', choices: [
+      { text: '📵 把手机调静音', effects: {health:5,mood:-5,energy:5}, response: '话痨没铃声可学了，偶尔自己"喂"一声自娱自乐。' },
+      { text: '📞 教它学完整对话', effects: {health:5,mood:10,energy:-15}, response: '话痨能说"喂，不在家，请留言"了！快递小哥被骗了好几次...' }
+    ]},
+    { text: '话痨今天特别安静，一声不吭缩在角落。', choices: [
+      { text: '🩺 带它去看兽医', effects: {health:15,mood:5,energy:-10}, response: '兽医说话痨有点着凉，吃完药后精神多了！' },
+      { text: '🍎 给它最爱的水果', effects: {health:5,mood:10,energy:5}, response: '话痨看到水果恢复了精神，小声说了句"谢谢"...你听错了吗？' }
+    ]},
+    { text: '话痨学会了你打哈欠的声音，每天傍晚开始不停"啊~"！', choices: [
+      { text: '🛏️ 按时给它盖笼布睡觉', effects: {health:10,mood:5,energy:10}, response: '话痨养成了早睡习惯，每天傍晚自动安静下来等你盖布布。' },
+      { text: '🎤 教它唱睡前歌', effects: {health:5,mood:15,energy:-10}, response: '话痨学会了"摇篮曲"...虽然调子完全跑偏，但很有自己的风格！' }
+    ]},
+    { text: '你在打电话，话痨在旁边跟着说，对方以为你家有人！', choices: [
+      { text: '🤣 跟对方解释这是你的鸟', effects: {health:5,mood:10,energy:-5}, response: '对方听说是鸟在说话，要求视频通话看话痨表演。话痨成了电话明星！' },
+      { text: '🚶 走到另一个房间打电话', effects: {health:5,mood:-10,energy:-5}, response: '话痨发现你走了，开始大喊"回来！回来！"...整层楼都听到了。' }
+    ]},
+    { text: '话痨学会了模仿你笑的声音，客人来了它一直哈哈大笑！', choices: [
+      { text: '😂 大家一起笑', effects: {health:5,mood:15,energy:-5}, response: '客人被话痨的笑声逗得前仰后合，整个下午都在笑。话痨特别得意！' },
+      { text: '😅 有点尴尬，赶紧转移话题', effects: {health:5,mood:-5,energy:-5}, response: '话痨发现没人理它了，更大声地笑...最后大家还是忍不住笑场了。' }
+    ]},
+    { text: '话痨不知从哪学会了"起床了起床了"，每天清晨五点准时喊！', choices: [
+      { text: '🕐 慢慢训练它晚点叫', effects: {health:10,mood:-5,energy:-10}, response: '经过两周训练，话痨终于把起床时间推迟到六点了。进步！' },
+      { text: '😴 买隔音耳塞', effects: {health:5,mood:5,energy:10}, response: '你戴着耳塞睡得很好。但邻居问你：你家鸟每天五点叫什么？' }
+    ]},
+    { text: '你带话痨去宠物店，它对着店里的鹦鹉说了一句"你好"！', choices: [
+      { text: '🤝 让它们聊聊天', effects: {health:5,mood:15,energy:-5}, response: '话痨和鹦鹉对话了十分钟，虽然完全不搭调，但它们似乎很享受。跨物种社交！' },
+      { text: '📸 录下来发朋友圈', effects: {health:5,mood:10,energy:-5}, response: '视频里两只鸟对话的样子太搞笑了！朋友们纷纷留言"再来一集"。' }
+    ]},
+    { text: '话痨不小心飞到了厨房，在你做饭的锅上方盘旋！', choices: [
+      { text: '🥦 赶紧把它引回笼子', effects: {health:10,mood:-5,energy:-5}, response: '你用零食引诱话痨回了笼子。好险！厨房对鸟不安全。' },
+      { text: '🚪 以后做饭关厨房门', effects: {health:10,mood:5,energy:0}, response: '你设立了新规矩：做饭时关门。话痨在门外叽叽喳喳表示抗议但你很坚持。' }
+    ]},
+    { text: '话痨学会了模仿你咳嗽的声音，还学了你说的"天哪我感冒了"！', choices: [
+      { text: '🤧 教它说"多喝热水"', effects: {health:5,mood:15,energy:-10}, response: '话痨现在每次听到咳嗽都会说"多喝热水"。你妈来了之后说话痨比你还关心人。' },
+      { text: '😅 装没听到', effects: {health:5,mood:5,energy:5}, response: '话痨见没反应，加大音量重复"天哪我感冒了！！"邻居差点打120...' }
+    ]},
+    { text: '话痨发现你每次说"好乖"就给它零食，现在它对着你狂说"好乖好乖"！', choices: [
+      { text: '🍪 被反向训练了，给它零食', effects: {health:-5,mood:15,energy:5}, response: '话痨得逞了！它学会了用语言操控你。从今天起，是它在养你。' },
+      { text: '🧐 假装听不懂', effects: {health:5,mood:-5,energy:5}, response: '话痨困惑了一下，然后试了试"你好""来客人啦""开饭啦"...全套话术轮了一遍。' }
+    ]}
+  ],
+  snake: [
+    { text: '小青刚到家，缩在角落不动。怎么让它适应？', choices: [
+      { text: '🌡️ 布置温暖的窝', effects: {health:15,mood:10,energy:5}, response: '小青慢慢探出头，感受温暖后身体舒展开来！' },
+      { text: '🤚 直接上手摸', effects: {health:-5,mood:-15,energy:-5}, response: '小青受惊嗖的一下缩成一团！它还没准备好...' }
+    ]},
+    { text: '喂食时间，小青盯着你看。', choices: [
+      { text: '🐁 科学食谱喂食', effects: {health:15,mood:5,energy:10}, response: '小青优雅进食，满足地蜷在窝里消化。' },
+      { text: '🍖 多喂点加个餐', effects: {health:-10,mood:10,energy:-10}, response: '小青吃撑了...消化不良的样子。' }
+    ]},
+    { text: '朋友发现你养了蛇，吓得尖叫！', choices: [
+      { text: '😊 耐心介绍小青', effects: {health:5,mood:15,energy:-5}, response: '朋友近距离看了小青，发现它挺可爱的！' },
+      { text: '😈 拿出来吓朋友', effects: {health:-5,mood:-20,energy:-15}, response: '朋友跑了...小青也被吓到了。两边都不开心！' }
+    ]},
+    { text: '小青到了蜕皮季，看起来很烦躁。', choices: [
+      { text: '💧 保持湿度安静环境', effects: {health:15,mood:10,energy:5}, response: '小青顺利蜕了皮，焕然一新！新皮肤亮亮的。' },
+      { text: '🤏 帮它撕旧皮', effects: {health:-10,mood:-15,energy:-10}, response: '蜕皮要让它自己来！强行帮忙伤到了新皮肤。' }
+    ]},
+    { text: '小青从箱子里钻出来了，在客厅爬！', choices: [
+      { text: '🧤 温柔放回去加固箱子', effects: {health:10,mood:5,energy:-5}, response: '小青有点不情愿，但窝里确实更安全。' },
+      { text: '🛋️ 让它探索一会儿', effects: {health:5,mood:15,energy:-10}, response: '小青钻进沙发缝，你花了二十分钟才找出来...' }
+    ]},
+    { text: '小青趴在暖气管上不肯下来。', choices: [
+      { text: '🌡️ 买个专用加热垫', effects: {health:10,mood:15,energy:5}, response: '小青爱上了加热垫，不缠暖气管了！' },
+      { text: '🥶 关暖气逼它下来', effects: {health:-10,mood:-15,energy:-5}, response: '小青冷得缩成一团，一脸怨念...' }
+    ]},
+    { text: '你发现小青特别喜欢缠在你手臂上不走。', choices: [
+      { text: '💪 让它待着，当条手臂装饰', effects: {health:5,mood:15,energy:-5}, response: '小青缠在你手臂上，你走到哪它就跟到哪。朋友说你看起来像个蛇系精灵。' },
+      { text: '🏠 轻轻放回窝里', effects: {health:5,mood:-5,energy:5}, response: '小青不太情愿地回了窝，但过了一会儿又爬出来想缠你的脚...' }
+    ]},
+    { text: '给小青换了一个更大的新箱子，但它不肯进去！', choices: [
+      { text: '🌿 在新箱子里放它的旧垫子', effects: {health:10,mood:10,energy:0}, response: '闻到熟悉的味道，小青慢慢爬进了新家。换个环境它也能接受，只要有安全感。' },
+      { text: '⏰ 把它放进去等它慢慢适应', effects: {health:5,mood:-10,energy:-5}, response: '小青在新箱子里紧张了好一会儿，最后在角落缩成一团。它需要更多时间。' }
+    ]},
+    { text: '小青趴在窗户上晒太阳，突然看到外面有一只鸟飞过！', choices: [
+      { text: '🪟 拉上窗帘避免刺激', effects: {health:5,mood:-5,energy:5}, response: '小青对着拉上的窗帘发了半天呆。它好像还在回味那只鸟...' },
+      { text: '🐦 让它看看，开阔眼界', effects: {health:5,mood:10,energy:-5}, response: '小青紧紧贴在窗户上看了一下午。虽然它本能地兴奋，但隔着玻璃也挺安全的。' }
+    ]},
+    { text: '你在清理小青的窝，它一脸不情愿地被放在旁边等。', choices: [
+      { text: '🧹 快速清理完立刻放它回去', effects: {health:10,mood:5,energy:-5}, response: '小青回到干净的窝里，先检查了一遍所有角落，然后满意地趴下了。' },
+      { text: '🛀 顺便给它洗个温水澡', effects: {health:15,mood:-5,energy:-10}, response: '小青对温水澡不太感冒，但洗完后它的鳞片亮亮的，客观来说更好看了。' }
+    ]},
+    { text: '小青夜里发出了沙沙的声音，你发现它在箱子里试图找出口。', choices: [
+      { text: '🔍 检查箱子有没有缝隙', effects: {health:10,mood:5,energy:-5}, response: '你发现有个角落的卡扣松了，及时修好了。小青安分下来继续睡觉。' },
+      { text: '🏕️ 在箱子里加个躲藏洞', effects: {health:5,mood:15,energy:5}, response: '小青发现了新的躲藏点，立刻钻进去不出来了。它需要的是安全感，不是逃跑。' }
+    ]},
+    { text: '天气突然变冷了，小青不爱动了。', choices: [
+      { text: '🔥 开暖气保持温度', effects: {health:15,mood:10,energy:10}, response: '小青在温暖的环境里恢复了活力，开始在窝里游来游去。冷血动物果然靠温度！' },
+      { text: '🧣 给它的窝包上毛巾保温', effects: {health:10,mood:5,energy:5}, response: '毛巾保温效果还行，小青缩在里面暖和了不少，但还是有点懒洋洋的。' }
+    ]},
+    { text: '小青似乎认出了你！每次你靠近它就探出头来。', choices: [
+      { text: '🤗 轻轻抚摸它的头', effects: {health:5,mood:15,energy:-5}, response: '小青安静地让你摸了好一会儿。它信任你了！这对冷血动物来说意义重大。' },
+      { text: '🍎 给它一个小奖励', effects: {health:10,mood:10,energy:5}, response: '小青接过奖励，开心地吃了。它现在会主动游向你的手——这就是信任的表现。' }
+    ]}
+  ],
+  parrot: [
+    { text: '蓝莓刚到新家，站在架子上东张西望。', choices: [
+      { text: '🫐 喂它吃蓝莓果', effects: {health:10,mood:15,energy:5}, response: '蓝莓开心地啄着蓝莓果，名副其实！' },
+      { text: '🎵 放音乐给它听', effects: {health:5,mood:10,energy:-5}, response: '蓝莓跟着节拍点头！是个音乐鉴赏家。' }
+    ]},
+    { text: '蓝莓最爱学你打喷嚏！整天"阿嚏"...', choices: [
+      { text: '📚 认真教它说"你好"', effects: {health:10,mood:-5,energy:-10}, response: '终于说了"你好"...然后又"阿嚏"。任重道远！' },
+      { text: '😂 随它去', effects: {health:5,mood:15,energy:5}, response: '蓝莓更起劲了！来客人时一通"阿嚏"笑翻全场。' }
+    ]},
+    { text: '蓝莓飞到窗台，看着外面的鸟想出去...', choices: [
+      { text: '🪟 在阳台透气（有防护网）', effects: {health:10,mood:15,energy:-5}, response: '蓝莓晒太阳，和麻雀叽叽喳喳聊天！' },
+      { text: '🚪 开窗让它自由飞', effects: {health:-15,mood:-25,energy:-30}, response: '蓝莓被外面吓到了，在树上瑟瑟发抖...', checkHibernate:true }
+    ]},
+    { text: '蓝莓学会叫你名字，音量特别大！', choices: [
+      { text: '🎤 教它小声说话', effects: {health:5,mood:5,energy:-10}, response: '蓝莓学会正常音量了，但兴奋时还是飙高音...' },
+      { text: '🏆 带它参加才艺比赛', effects: {health:5,mood:20,energy:-15}, response: '蓝莓大声喊你名字，获得了"最响亮奖"！' }
+    ]},
+    { text: '蓝莓模仿微波炉"叮"的声音！', choices: [
+      { text: '🍎 每次叮给它坚果', effects: {health:5,mood:15,energy:-5}, response: '蓝莓发现叮能换零食，不停叮叮叮...你喂了它20颗坚果。' },
+      { text: '🙉 教它学别的声音', effects: {health:5,mood:5,energy:-10}, response: '蓝莓学会了"开饭啦"...每五分钟喊一次。' }
+    ]},
+    { text: '蓝莓突然拔自己的羽毛！看起来很焦虑。', choices: [
+      { text: '🩺 赶紧去看兽医', effects: {health:15,mood:10,energy:-10}, response: '兽医说缺维生素，补充后不再拔毛了。' },
+      { text: '🧸 多陪伴给它玩具', effects: {health:5,mood:15,energy:-10}, response: '有了新玩具蓝莓分散了注意力，不再拔毛了。' }
+    ]},
+    { text: '蓝莓学会了模仿你家猫叫"喵"！猫吓坏了到处找同类。', choices: [
+      { text: '🐱 让猫和蓝莓面对面', effects: {health:5,mood:15,energy:-5}, response: '猫和蓝莓大眼瞪小眼。蓝莓对着猫"喵"了一声，猫转头就跑。蓝莓很得意。' },
+      { text: '🔇 训练蓝莓不要学猫叫', effects: {health:5,mood:-5,energy:-10}, response: '蓝莓不学猫叫了...改学狗叫了。这只鸟的模仿欲是压不住的。' }
+    ]},
+    { text: '蓝莓飞到你头上不走了，把你的头当窝了！', choices: [
+      { text: '😊 顶着它走来走去', effects: {health:5,mood:15,energy:-10}, response: '蓝莓在你头上东看西看，你成了移动瞭望台。路人投来羡慕的目光。' },
+      { text: '🏠 把它放回架子上', effects: {health:5,mood:-5,energy:5}, response: '蓝莓不情愿地回到架子上，但一直盯着你的头，寻找下一次起飞的机会。' }
+    ]},
+    { text: '你给蓝莓买了一面小镜子，它对着镜子说了一下午话！', choices: [
+      { text: '🪞 让它继续社交', effects: {health:5,mood:15,energy:-5}, response: '蓝莓跟"镜中鹦鹉"相谈甚欢，时而甜蜜时而吵架，剧情堪比偶像剧。' },
+      { text: '🧸 给它一个同伴玩偶代替', effects: {health:5,mood:10,energy:0}, response: '蓝莓抱着玩偶蹭来蹭去，偶尔对它说话。虽然对方不会回答，但蓝莓不在乎。' }
+    ]},
+    { text: '蓝莓学会了你说"下班了"的语气！每天六点准时喊"下班了！"', choices: [
+      { text: '⏰ 鼓励它当报时鸟', effects: {health:5,mood:15,energy:-5}, response: '蓝莓成了家里的活体闹钟！六点下班，七点吃饭，八点洗澡——时间观念比你还准。' },
+      { text: '📅 教它说"周末不上班"', effects: {health:5,mood:10,energy:-10}, response: '蓝莓学会了...但它不懂今天是不是周末，所以每天都在"下班了"和"周末不上班"之间随机播放。' }
+    ]},
+    { text: '蓝莓不知怎的学会了"买它买它"，你带它去宠物店时太尴尬了！', choices: [
+      { text: '🤣 哈哈，就当它是带货主播', effects: {health:5,mood:15,energy:-5}, response: '宠物店老板笑得不行，给了蓝莓一把免费葵花籽。蓝莓：带货成功！' },
+      { text: '🤫 教它说"谢谢光临"', effects: {health:5,mood:10,energy:-10}, response: '蓝莓新技能get！现在它进店说"买它"，出店说"谢谢光临"，专业程度堪比AI导购。' }
+    ]},
+    { text: '蓝莓和你的手机抢夺战——它老是啄你的手机屏幕！', choices: [
+      { text: '📱 给它一个废旧手机玩', effects: {health:5,mood:15,energy:-5}, response: '蓝莓拿到旧手机后疯狂啄屏幕，还歪着头看视频。它以为自己在刷短视频。' },
+      { text: '🚫 每次啄手机就温柔地推开', effects: {health:5,mood:-5,energy:-5}, response: '蓝莓知道手机不能碰了，但它会在你玩手机时故意在旁边大声叫，争宠意识很强。' }
+    ]}
+  ],
+  duck: [
+    { text: '小饼干在客厅摇摇摆摆，嘎嘎叫个不停。', choices: [
+      { text: '🛁 准备一盆水', effects: {health:10,mood:15,energy:-5}, response: '小饼干扑进水盆，水花溅一地！嘎嘎叫得更欢了。' },
+      { text: '🥬 喂新鲜蔬菜', effects: {health:15,mood:5,energy:5}, response: '小饼干啄着菜叶津津有味，羽毛更亮了！' }
+    ]},
+    { text: '小饼干跟你走到哪跟到哪，上厕所都在门口等！', choices: [
+      { text: '💕 让它一直跟着', effects: {health:5,mood:15,energy:-10}, response: '摇摇摆摆的小屁股太治愈了！小心别踩到它...' },
+      { text: '🏠 圈一个活动区域', effects: {health:10,mood:-10,energy:5}, response: '小饼干站在围栏边委屈巴巴看着你...嘎？' }
+    ]},
+    { text: '小饼干发现了楼下的水池！', choices: [
+      { text: '🏊 带它下楼玩水', effects: {health:10,mood:20,energy:-10}, response: '小饼干如鱼得水！优雅游来游去，成了小区明星！' },
+      { text: '📸 在阳台给它拍照', effects: {health:5,mood:5,energy:5}, response: '照片发朋友圈获赞无数！但它还是望着水池...' }
+    ]},
+    { text: '小饼干走路啪嗒响，楼下邻居来了...', choices: [
+      { text: '🧦 给它穿小袜子', effects: {health:5,mood:-10,energy:-5}, response: '小饼干穿袜子后不会走了，一屁股坐下。' },
+      { text: '🎁 给邻居送鸭蛋道歉', effects: {health:5,mood:10,energy:-5}, response: '邻居收到鸭蛋笑了！开始期待下一个了。' }
+    ]},
+    { text: '小饼干发现了镜子，对着"另一只鸭子"嘎了十分钟！', choices: [
+      { text: '😆 录下来发网上', effects: {health:5,mood:15,energy:-5}, response: '视频火了！10万播放，评论区说太可爱！' },
+      { text: '🪞 收起镜子怕它累', effects: {health:10,mood:-5,energy:10}, response: '小饼干发现新朋友不见了，失落地走开了...' }
+    ]},
+    { text: '小饼干在沙发上下了一个蛋！！', choices: [
+      { text: '🥚 小心翼翼收好蛋', effects: {health:5,mood:10,energy:-5}, response: '小饼干骄傲地嘎嘎叫，这是它给你的礼物！' },
+      { text: '🍳 当场煎了吃', effects: {health:-5,mood:-20,energy:10}, response: '小饼干看到你煎蛋，沉默了...三天没理你。' }
+    ]},
+    { text: '你带小饼干去公园，它看到池塘里的天鹅，立刻冲过去！', choices: [
+      { text: '🏃 追上去看看', effects: {health:5,mood:15,energy:-10}, response: '小饼干和天鹅在池塘里一起游泳！虽然体型差距很大，但小饼干毫不自卑。' },
+      { text: '🦆 赶紧拉住它', effects: {health:5,mood:-10,energy:-5}, response: '小饼干被拉住后一直朝天鹅方向嘎嘎叫。它觉得那是它失散多年的亲戚。' }
+    ]},
+    { text: '小饼干学会了跟你要零食：每次嘎嘎叫就是想吃东西！', choices: [
+      { text: '🌽 给它准备健康零食', effects: {health:10,mood:10,energy:5}, response: '小饼干吃到玉米粒后开心地甩头，零食从嘴角飞出去了。它吃东西总是很豪放。' },
+      { text: '🙅 不能惯它，定时喂', effects: {health:10,mood:-5,energy:5}, response: '小饼干知道嘎嘎叫没用了，换了一招——坐在你脚上不走。你心软了。' }
+    ]},
+    { text: '小饼干趁你开门的时候冲了出去，在走廊里嘎嘎跑！', choices: [
+      { text: '🏃 赶紧追上去抓回来', effects: {health:5,mood:5,energy:-15}, response: '你在走廊里追了五分钟才抓到小饼干。邻居开门看热闹，有人拍了视频...' },
+      { text: '🍞 用面包屑引它回来', effects: {health:5,mood:10,energy:-5}, response: '小饼干一路啄着面包屑回了家。它觉得这是一场寻宝游戏。' }
+    ]},
+    { text: '下雨天，小饼干居然在阳台上淋雨！而且看起来很开心！', choices: [
+      { text: '🌧️ 让它享受一下', effects: {health:-5,mood:20,energy:-5}, response: '小饼干在雨中摇头晃脑，开心地甩着水珠。它可能觉得自己回到了大自然。' },
+      { text: '🏠 赶紧把它抱进来擦干', effects: {health:10,mood:-5,energy:-5}, response: '小饼干被擦得毛都炸了，一脸不情愿。它本来在享受spa呢！' }
+    ]},
+    { text: '小饼干偷偷跑进了浴室，在浴缸里游泳！水漫了一地！', choices: [
+      { text: '🛁 放点温水让它正式游', effects: {health:10,mood:20,energy:-10}, response: '小饼干在浴缸里游得太开心了！你坐在马桶盖上看它表演花式游泳。' },
+      { text: '🧹 把它捞出来收拾浴室', effects: {health:5,mood:-10,energy:-10}, response: '小饼干被捞出来后一路嘎嘎抗议，留下一串湿脚印。你收拾了半小时。' }
+    ]},
+    { text: '小饼干对着电视上的动物世界节目嘎嘎叫！看到鸭子出场更激动了！', choices: [
+      { text: '📺 调大音量让它看', effects: {health:5,mood:15,energy:-5}, response: '小饼干看了一整集，还对着电视里的鸭子嘎嘎回应。它可能觉得在跟亲戚视频通话。' },
+      { text: '🔇 关掉电视怕它太兴奋', effects: {health:5,mood:-10,energy:5}, response: '电视关了之后小饼干对着黑屏嘎了好一阵，然后失落地走开了。它的"亲戚"消失了。' }
+    ]},
+    { text: '你发现小饼干居然会排队！你走，它跟在后面，你停，它也停！', choices: [
+      { text: '🎮 教它更多小技能', effects: {health:5,mood:15,energy:-10}, response: '经过训练，小饼干学会了"转圈"和"握手"！虽然握手是用蹼，但可爱度加倍！' },
+      { text: '📱 拍成短视频', effects: {health:5,mood:10,energy:-5}, response: '跟屁鸭小饼干的视频在网上爆红！评论最多的是"我也要养一只跟屁鸭"。' }
+    ]}
+  ],
+  turtle: [
+    { text: '龟仙人缩在壳里一动不动。怎么让它开心？', choices: [
+      { text: '☀️ 给它晒太阳', effects: {health:15,mood:10,energy:10}, response: '龟仙人慢慢探出头，眯着眼享受日光浴。' },
+      { text: '🥒 喂黄瓜片', effects: {health:10,mood:10,energy:5}, response: '龟仙人小脑袋伸出来，一口一口慢慢吃。龟速进食。' }
+    ]},
+    { text: '龟仙人速度意外地快！爬到了沙发底下。', choices: [
+      { text: '⏰ 等它自己出来', effects: {health:5,mood:10,energy:10}, response: '半小时后它自己爬出来了，嘴里叼着一个乐高小人...' },
+      { text: '🧹 用扫把轻轻推', effects: {health:5,mood:-15,energy:-5}, response: '龟仙人一脸不爽，缩回壳里表示抗议。' }
+    ]},
+    { text: '龟仙人和猫面对面对峙了！', choices: [
+      { text: '🛡️ 赶紧保护龟仙人', effects: {health:10,mood:5,energy:-5}, response: '它缩在壳里完全不慌——天然装甲！' },
+      { text: '👀 在旁边观察', effects: {health:5,mood:15,energy:-5}, response: '猫拍了龟壳，爪子被弹回来。龟仙人：就这攻击力？' }
+    ]},
+    { text: '龟仙人爬到了你的鞋子里当新家！', choices: [
+      { text: '👟 准备专属小屋', effects: {health:10,mood:10,energy:0}, response: '龟仙人搬进新家，转一圈表示满意。' },
+      { text: '😅 这双鞋让给它', effects: {health:5,mood:15,energy:5}, response: '龟仙人在鞋子里探出头四处张望。你少了一双鞋。' }
+    ]},
+    { text: '龟仙人爬到桌子边缘了！', choices: [
+      { text: '🚨 飞扑过去接住', effects: {health:10,mood:5,energy:-10}, response: '接住了！它似乎在说：刺激！再来！' },
+      { text: '🧱 给桌子做围栏', effects: {health:10,mood:0,energy:-5}, response: '龟仙人在围栏里悠闲散步。安全第一！' }
+    ]},
+    { text: '龟仙人趴在你的书上不走。', choices: [
+      { text: '📖 换一本书看', effects: {health:5,mood:10,energy:0}, response: '你换了一本，龟仙人又爬到新书上了...它只是想和你在一起。' },
+      { text: '🌿 用菜叶引诱它离开', effects: {health:5,mood:5,energy:-5}, response: '龟仙人追着菜叶走了。你终于能看书了...但有点想它。' }
+    ]},
+    { text: '你给龟仙人换水时，它趁机爬出了水盆在地上旅行！', choices: [
+      { text: '🗺️ 给它规划一条安全路线', effects: {health:5,mood:15,energy:-5}, response: '龟仙人沿着你用书本铺的"赛道"慢慢爬，看起来很享受这次探险。' },
+      { text: '🏠 赶紧放回水盆', effects: {health:5,mood:-5,energy:5}, response: '龟仙人在水盆里待了一会儿，又开始在边缘试探了...它的探险欲压不住。' }
+    ]},
+    { text: '龟仙人不知道怎么翻了个四脚朝天！在地上蹬腿！', choices: [
+      { text: '🤲 赶紧帮它翻过来', effects: {health:10,mood:10,energy:-5}, response: '龟仙人翻过来后定了定神，然后若无其事地继续爬。它的眼神在说：你什么都没看到。' },
+      { text: '📸 先拍照再帮忙', effects: {health:5,mood:-10,energy:-5}, response: '龟仙人在你拍照的时候蹬得更急了。它翻过来后看你的眼神充满了"我记住你了"。' }
+    ]},
+    { text: '你把龟仙人放在地上，它居然朝着阳光的方向一直爬！', choices: [
+      { text: '☀️ 带它到阳台晒太阳', effects: {health:15,mood:15,energy:5}, response: '龟仙人在阳光下伸展四肢，脖子伸得老长，完全进入了"充电模式"。幸福的小乌龟！' },
+      { text: '🏠 把它放回阴凉处', effects: {health:5,mood:-10,energy:5}, response: '龟仙人掉头又朝阳光爬去了。你放弃了...太阳能动力它是挡不住的。' }
+    ]},
+    { text: '龟仙人发现了你的手指在它面前晃动，一口咬住了！', choices: [
+      { text: '😂 哈哈，它在跟你玩', effects: {health:5,mood:15,energy:-5}, response: '龟仙人咬了一小口就松了，然后又去咬你的鞋带。它今天精力很充沛！' },
+      { text: '😱 吓一跳赶紧缩手', effects: {health:5,mood:-5,energy:-5}, response: '龟仙人一脸困惑地看着缩回的手指。它只是想表达友好...方式有点直接。' }
+    ]},
+    { text: '你买了个龟粮自动喂食器，但龟仙人不吃里面出来的食物。', choices: [
+      { text: '🤲 继续手动喂它', effects: {health:10,mood:15,energy:-5}, response: '龟仙人只认你的手。从你手里吃东西的时候它特别安静和乖。这是你们之间的仪式。' },
+      { text: '🥒 在喂食器旁放它爱吃的黄瓜', effects: {health:10,mood:5,energy:0}, response: '龟仙人为了吃黄瓜，顺便接受了喂食器。你成功了...黄瓜才是第一生产力。' }
+    ]},
+    { text: '龟仙人在窝里一动不动好久了，你有点担心...', choices: [
+      { text: '🩺 带它去看兽医', effects: {health:15,mood:5,energy:-10}, response: '兽医说龟仙人在冬眠准备期，一切正常！你虚惊一场，但小心总没错。' },
+      { text: '🌡️ 检查温度是不是太低了', effects: {health:10,mood:10,energy:5}, response: '果然温度偏低，你调高了暖气。龟仙人慢慢恢复了活力，开始四处爬动。' }
+    ]},
+    { text: '龟仙人居然学会了"敲碗"——用壳撞食盆发出声音要吃的！', choices: [
+      { text: '🥒 每次敲碗就喂', effects: {health:-5,mood:15,energy:5}, response: '龟仙人发现了新技能！现在它每小时敲一次碗...你被一只乌龟PUA了。' },
+      { text: '⏰ 定时喂食不被它操控', effects: {health:10,mood:-5,energy:5}, response: '龟仙人敲了半天没反应，默默停了下来。到了饭点你准时喂了它，它还是很开心。' }
+    ]}
+  ]
+};
+
+const RANDOM_EVENTS = [
+  { text: '突发事件：你的宠物好像有点不舒服，精神不太好...', choices: [
+    { text: '🩺 马上带它去看兽医', effects: {health:15,mood:5,energy:-10}, response: '兽医说只是小感冒，开了点药。你的细心让宠物很快就恢复了！', curesSick: true },
+    { text: '🏠 在家观察一下再说', effects: {health:-10,mood:-5,energy:5}, response: '宠物的状况变差了...早点去看医生就好了。', makesSick: true }
+  ], isEvent: true },
+  { text: '惊喜事件：朋友送了一袋高级宠物零食！', choices: [
+    { text: '🍖 立刻打开给宠物吃', effects: {health:5,mood:15,energy:5}, response: '宠物吃到高级零食，开心得不得了！疯狂卖萌求更多。' },
+    { text: '📦 存起来当奖励慢慢给', effects: {health:10,mood:5,energy:5}, response: '你决定作为训练奖励，宠物每次表现好就给一点。它学东西变快了！' }
+  ], isEvent: true },
+  { text: '突发事件：外面突然下大雨了，宠物被淋湿了！', choices: [
+    { text: '🛁 赶紧给它洗个热水澡', effects: {health:10,mood:10,energy:-10}, response: '宠物洗完澡暖和多了，在你怀里蹭了蹭表示感谢。' },
+    { text: '💨 用毛巾擦干就行', effects: {health:-5,mood:5,energy:-5}, response: '擦干了但没完全干...宠物打了个喷嚏。', makesSick: true }
+  ], isEvent: true },
+  { text: '突发事件：宠物的疫苗到期了，需要去打针！', choices: [
+    { text: '💉 带它去打疫苗', effects: {health:20,mood:-10,energy:-10}, response: '打针的时候宠物很紧张，但你一直安慰它。打完后健康值大增！', curesSick: true },
+    { text: '📅 下次再说吧', effects: {health:-15,mood:5,energy:5}, response: '拖延疫苗可不好...宠物的健康隐患增加了。' }
+  ], isEvent: true },
+  { text: '⚠️ 紧急事件：宠物突然发烧了，体温很高！', choices: [
+    { text: '🏥 立刻送宠物医院', effects: {health:20,mood:0,energy:-15}, response: '医生说幸好送来得及时！打了退烧针，宠物慢慢恢复了体温。', curesSick: true },
+    { text: '🌡️ 先用物理降温观察', effects: {health:-5,mood:-10,energy:-5}, response: '物理降温效果不明显，宠物还是很难受...应该去医院的。', makesSick: true }
+  ], isEvent: true },
+  { text: '⚠️ 突发事件：宠物吃了不该吃的东西，肚子咕噜噜叫！', choices: [
+    { text: '🩺 带去宠物医院检查', effects: {health:15,mood:-5,energy:-10}, response: '医生给宠物做了检查，开了肠胃药。还好发现得早！', curesSick: true },
+    { text: '🍵 给它喝点温水观察', effects: {health:-10,mood:-10,energy:0}, response: '宠物肚子越来越不舒服，看起来很痛苦...', makesSick: true }
+  ], isEvent: true }
+];
+
+// ===== GENERIC SCENES (work for any pet, use {name} placeholder) =====
+const GENERIC_SCENES = [
+  { text: '{name}今天胃口特别好，把饭盆舔得干干净净！', choices: [
+    { text: '🍖 再加一点加餐', effects: {health:-5,mood:15,energy:5}, response: '{name}吃得心满意足，圆滚滚地躺在窝里打嗝。' },
+    { text: '🥗 给它准备健康小食', effects: {health:10,mood:5,energy:5}, response: '{name}虽然更想吃零食，但健康食品让它精神焕发！' }
+  ]},
+  { text: '你出门回来，{name}在门口等了好久，看到你特别激动！', choices: [
+    { text: '🤗 蹲下来跟它亲热', effects: {health:5,mood:15,energy:-5}, response: '{name}扑到你怀里蹭来蹭去，尾巴摇得要飞起来了！' },
+    { text: '🎁 给它带了小礼物', effects: {health:5,mood:20,energy:-5}, response: '{name}收到礼物开心极了！你是它最喜欢的人！' }
+  ]},
+  { text: '今天天气特别好，阳光暖暖的照进来。', choices: [
+    { text: '☀️ 带{name}晒太阳', effects: {health:10,mood:10,energy:5}, response: '{name}在阳光下舒展身体，享受温暖的时光。真治愈！' },
+    { text: '🏠 在家陪它安静待着', effects: {health:5,mood:10,energy:10}, response: '你和{name}一起安静地度过了一个下午，很平静很幸福。' }
+  ]},
+  { text: '{name}突然对着角落发呆，好像在想什么心事...', choices: [
+    { text: '🤔 静静陪伴它', effects: {health:5,mood:10,energy:5}, response: '{name}感受到你的陪伴，蹭了蹭你的手。有你在就好。' },
+    { text: '🧸 拿玩具逗它开心', effects: {health:5,mood:15,energy:-10}, response: '{name}被玩具吸引，一下子忘记了烦恼！' }
+  ]},
+  { text: '家里来了小朋友想跟{name}玩！', choices: [
+    { text: '👶 让小朋友轻轻摸它', effects: {health:5,mood:10,energy:-5}, response: '{name}乖巧地让小朋友摸，小朋友开心极了！' },
+    { text: '🚧 先让{name}适应再接触', effects: {health:5,mood:5,energy:0}, response: '{name}观察了一会儿，慢慢接受了小朋友。安全第一！' }
+  ]},
+  { text: '你在吃零食，{name}在旁边眼巴巴地看着你...', choices: [
+    { text: '🍪 分它一小块宠物零食', effects: {health:-5,mood:15,energy:5}, response: '{name}接过零食开心地吃了！然后继续盯着你，还想要。' },
+    { text: '🙅 摇摇头表示不行', effects: {health:5,mood:-10,energy:0}, response: '{name}委屈地走开了...偶尔回头看你一眼，演技满分。' }
+  ]},
+  { text: '你给{name}拍了一张超可爱的照片！', choices: [
+    { text: '📱 发朋友圈show一下', effects: {health:5,mood:10,energy:-5}, response: '朋友们疯狂点赞！评论区都在说{name}太可爱了！' },
+    { text: '🖼️ 打印出来挂墙上', effects: {health:5,mood:15,energy:-10}, response: '你把照片挂在客厅，每次看到都忍不住微笑。{name}好像也认出了自己。' }
+  ]},
+  { text: '{name}最近学会了一个新技能——转圈圈！', choices: [
+    { text: '🎉 给它奖励鼓励', effects: {health:5,mood:15,energy:-5}, response: '{name}得到表扬后更来劲了，转了五个圈差点转晕！' },
+    { text: '📹 录下来留念', effects: {health:5,mood:10,energy:-5}, response: '视频太可爱了！{name}看到手机还专门又表演了一次。' }
+  ]},
+  { text: '你不小心打翻了水杯，{name}被吓了一跳！', choices: [
+    { text: '🤗 赶紧安慰它', effects: {health:5,mood:10,energy:-5}, response: '{name}在你怀里慢慢平静下来。有你在它就安心。' },
+    { text: '🧹 先收拾再安慰', effects: {health:5,mood:-5,energy:-5}, response: '{name}在角落警惕地看着你收拾。它还是有点紧张。' }
+  ]},
+  { text: '今天是{name}的生日！你准备了小蛋糕🎂', choices: [
+    { text: '🎂 办个小型生日派对', effects: {health:5,mood:20,energy:-10}, response: '{name}看到蛋糕上的小帽子，一脸懵又一脸开心。生日快乐！' },
+    { text: '🎁 买了新玩具当礼物', effects: {health:5,mood:15,energy:-5}, response: '{name}对新玩具爱不释手！今天是它最开心的一天。' }
+  ]},
+  { text: '你发现{name}在偷偷挠痒痒，好像有点皮肤问题。', choices: [
+    { text: '🩺 检查一下是不是过敏', effects: {health:15,mood:-5,energy:-5}, response: '原来是换季过敏，涂了药膏很快就好了。细心的铲屎官！' },
+    { text: '🛁 给它洗个药浴', effects: {health:10,mood:5,energy:-10}, response: '药浴之后{name}不挠了，皮肤恢复了健康光泽！' }
+  ]},
+  { text: '隔壁新搬来了一只宠物，{name}好奇地竖起耳朵！', choices: [
+    { text: '🤝 安排一次见面', effects: {health:5,mood:15,energy:-10}, response: '{name}和新邻居互相闻了闻，好像还挺投缘的！交到了新朋友。' },
+    { text: '🏠 让它在家远远看着', effects: {health:5,mood:5,energy:0}, response: '{name}趴在窗边看了好久，偶尔叫两声，算是打了个招呼。' }
+  ]},
+  { text: '你工作太忙，已经好几天没好好陪{name}了...', choices: [
+    { text: '💕 放下手机陪它玩一小时', effects: {health:5,mood:20,energy:-15}, response: '{name}开心坏了！整整一小时都黏着你不肯走。你的心也被治愈了。' },
+    { text: '🧸 给它买个智能玩具', effects: {health:5,mood:5,energy:0}, response: '{name}玩了一会儿玩具，但时不时还是看向你。它最想要的是你的陪伴。' }
+  ]},
+  { text: '你准备搬家了，{name}看着纸箱不安地走来走去。', choices: [
+    { text: '📦 先带{name}去看新家', effects: {health:5,mood:10,energy:-10}, response: '{name}在新家到处嗅，最后找到了一个它喜欢的角落！开始接受新环境了。' },
+    { text: '🧸 把它最爱的玩具先搬过去', effects: {health:5,mood:15,energy:-5}, response: '{name}在新家闻到了熟悉的气味，安心多了。有自己的东西在就好。' }
+  ]},
+  { text: '半夜，{name}突然凑到你床边盯着你看！', choices: [
+    { text: '😴 拍拍它让它回去睡', effects: {health:5,mood:5,energy:5}, response: '{name}被摸了摸头，满意地回窝睡了。其实它只是来看看你还在不在。' },
+    { text: '🛏️ 让它一起睡', effects: {health:5,mood:15,energy:5}, response: '{name}钻到你旁边，安心地闭上了眼。有你在真好。' }
+  ]},
+  { text: '你在家跟着视频做健身操，{name}在旁边看呆了。', choices: [
+    { text: '💪 拉着它一起运动', effects: {health:15,mood:10,energy:-15}, response: '{name}跟着你蹦了几下就累趴了。但它好像还挺开心的！' },
+    { text: '😂 让它当观众就好', effects: {health:5,mood:10,energy:0}, response: '{name}歪着头看你做操，时不时叫一声给你加油。' }
+  ]},
+  { text: '{name}不知道从哪找来一个袜子，咬着不放！', choices: [
+    { text: '🧦 跟它玩拔河', effects: {health:5,mood:15,energy:-10}, response: '你们玩了一场激烈的拔河赛！{name}赢了，叼着战利品到处炫耀。' },
+    { text: '🧸 用玩具换回袜子', effects: {health:5,mood:5,energy:-5}, response: '{name}犹豫了一下，最后松开了袜子。但它时不时还是会偷看那只袜子...' }
+  ]},
+  { text: '你发现{name}总是在同一个地方趴着，好像特别喜欢那个位置。', choices: [
+    { text: '🛏️ 给那个位置放个舒服的垫子', effects: {health:10,mood:15,energy:0}, response: '{name}看到新垫子，眼睛都亮了！立刻趴上去不走了。' },
+    { text: '📷 拍下来当纪念', effects: {health:5,mood:10,energy:0}, response: '{name}趴在专属位置的样子太可爱了，你决定把照片设为壁纸。' }
+  ]},
+  { text: '外面有烟花在放，{name}被声音吓到了！', choices: [
+    { text: '🤗 把它抱在怀里安慰', effects: {health:5,mood:10,energy:-5}, response: '{name}在你怀里慢慢不害怕了，甚至好奇地看了一眼窗外的烟花。' },
+    { text: '🎵 开音乐盖住声音', effects: {health:5,mood:5,energy:0}, response: '音乐成功转移了注意力，{name}渐渐放松下来了。' }
+  ]},
+  { text: '你买了一件新衣服，{name}好奇地闻来闻去。', choices: [
+    { text: '👗 让它闻个够', effects: {health:5,mood:10,energy:0}, response: '{name}闻完了，在新衣服上蹭了蹭...留下了一堆毛。' },
+    { text: '🐾 也给它买了一件小衣服', effects: {health:5,mood:15,energy:-5}, response: '{name}穿上小衣服后呆住了...但你觉得太可爱了！疯狂拍照。' }
+  ]},
+  { text: '今天你心情不太好，{name}好像感觉到了...', choices: [
+    { text: '💕 抱着{name}待一会儿', effects: {health:5,mood:15,energy:5}, response: '{name}安静地依偎在你身边，用体温温暖你的心。你的心情好多了。' },
+    { text: '🚶 带{name}出去散散步', effects: {health:10,mood:10,energy:-10}, response: '和{name}一起在外面走了走，看看天空，心情渐渐开朗了。' }
+  ]},
+  { text: '你给{name}修剪毛发/指甲，它不太配合！', choices: [
+    { text: '🍖 用零食转移注意力', effects: {health:10,mood:5,energy:-5}, response: '{name}一边吃零食一边乖乖让你修剪。美容完成！' },
+    { text: '💈 带去宠物美容店', effects: {health:10,mood:-5,energy:-10}, response: '专业的就是不一样！{name}出来后焕然一新，虽然它本人不太开心...' }
+  ]},
+  { text: '{name}学会了叼拖鞋给你！虽然是只拖鞋...', choices: [
+    { text: '👏 大力表扬它', effects: {health:5,mood:15,energy:-5}, response: '{name}得到表扬后更有干劲了！接下来它叼来了遥控器、手机壳、还有一只袜子...' },
+    { text: '🎓 教它叼对的东西', effects: {health:5,mood:5,energy:-10}, response: '训练了一阵子，{name}终于能准确叼到你要的东西了！聪明！' }
+  ]},
+  { text: '你在看电视，{name}挡在屏幕前面不走。', choices: [
+    { text: '📺 把它抱到旁边一起看', effects: {health:5,mood:15,energy:0}, response: '{name}坐在你旁边认真看电视，看到动物镜头还特别兴奋！' },
+    { text: '🎮 关电视陪它玩', effects: {health:5,mood:20,energy:-10}, response: '{name}终于得到了你的全部注意力，开心得上蹿下跳！' }
+  ]},
+  { text: '你发现{name}把家里的拖鞋排成了一排...', choices: [
+    { text: '📸 赶紧拍照记录', effects: {health:5,mood:15,energy:0}, response: '这张照片成为了朋友圈年度最佳！{name}是个整理大师。' },
+    { text: '🤔 是巧合还是故意的？', effects: {health:5,mood:10,energy:0}, response: '你决定不追究。{name}抬头看你的表情好像在说"没错，就是我干的"。' }
+  ]},
+  { text: '今天下雪了！{name}第一次看到雪，充满好奇。', choices: [
+    { text: '⛄ 带它出去玩雪', effects: {health:5,mood:20,energy:-15}, response: '{name}在雪地里撒欢！踩了一堆小脚印，还尝了一口雪（味道一般）。' },
+    { text: '🪟 让它在窗边看雪', effects: {health:5,mood:10,energy:0}, response: '{name}趴在窗边看了好久的雪花，安静又认真。好像在思考什么哲学问题。' }
+  ]},
+  { text: '你煮了一锅鸡汤，满屋子都是香味。{name}闻到了！', choices: [
+    { text: '🍗 给它尝一小口（放凉的）', effects: {health:5,mood:15,energy:5}, response: '{name}小心翼翼地舔了一口，满足得眯起了眼。' },
+    { text: '🚫 这个不能给它吃', effects: {health:5,mood:-10,energy:0}, response: '{name}在厨房门口蹲了一小时，眼神从期待变成了绝望。' }
+  ]},
+  { text: '{name}对着一只蚂蚁研究了半天！', choices: [
+    { text: '🔍 陪它一起观察', effects: {health:5,mood:10,energy:-5}, response: '你们两个一起趴在地上看蚂蚁搬家。邻居经过以为你们在找东西...' },
+    { text: '😄 拉它起来别挡路', effects: {health:5,mood:-5,energy:0}, response: '{name}依依不舍地离开了它的"研究对象"。它以后还会回来的。' }
+  ]},
+  { text: '快递到了一个大箱子，{name}钻进去不出来了！', choices: [
+    { text: '📦 把箱子改造成它的小屋', effects: {health:5,mood:20,energy:-5}, response: '{name}在纸箱小屋里住得特别开心！你觉得买那么多玩具不如一个纸箱...' },
+    { text: '🎪 在箱子上挖个洞一起玩', effects: {health:5,mood:15,energy:-10}, response: '{name}从洞里探出头来的样子太搞笑了！你们玩了一下午。' }
+  ]},
+  { text: '你放了一首很好听的歌，{name}居然跟着节奏摇头！', choices: [
+    { text: '🎵 继续放音乐看它反应', effects: {health:5,mood:15,energy:-5}, response: '{name}成了小DJ！每首歌都有不同的"舞步"。你发现它最喜欢节奏快的歌。' },
+    { text: '🎤 对着它唱歌', effects: {health:5,mood:10,energy:-5}, response: '你唱了一首歌...{name}歪着头听完了，然后走开了。可能你唱得不太好？' }
+  ]},
+  { text: '{name}发现了镜子里的自己，一脸困惑！', choices: [
+    { text: '🪞 让它慢慢认识自己', effects: {health:5,mood:10,energy:-5}, response: '{name}和镜中的自己对视了五分钟，最后友好地蹭了蹭镜子。' },
+    { text: '😂 在镜子旁边搞怪', effects: {health:5,mood:15,energy:-5}, response: '{name}看到你在镜子里做鬼脸，一脸"你在干嘛"的表情。太好笑了！' }
+  ]},
+  { text: '你在整理衣柜，{name}钻进一堆衣服里睡着了！', choices: [
+    { text: '😴 让它继续睡', effects: {health:5,mood:10,energy:10}, response: '{name}在衣服堆里睡得特别香，你默默地把衣柜空了一个角落给它。' },
+    { text: '📸 这个睡姿必须拍下来', effects: {health:5,mood:5,energy:5}, response: '睡在衣服堆里的{name}太可爱了！但拍照时闪光灯把它吵醒了，它迷迷糊糊看了你一眼又睡了。' }
+  ]},
+  { text: '你在做清洁，{name}把扫帚当成了玩具！', choices: [
+    { text: '🧹 用另一把扫帚跟它"决斗"', effects: {health:5,mood:15,energy:-10}, response: '你和{name}来了一场扫帚大战！虽然家没扫干净，但你们都玩开心了。' },
+    { text: '🧸 给它一个真正的玩具换走', effects: {health:5,mood:5,energy:-5}, response: '{name}不太情愿地松开了扫帚。它觉得扫帚比任何玩具都好玩。' }
+  ]},
+  { text: '朋友发来视频电话，{name}好奇地凑过来看屏幕！', choices: [
+    { text: '📱 让{name}出镜打个招呼', effects: {health:5,mood:15,energy:-5}, response: '朋友看到{name}高兴坏了！{name}对着手机叫了几声，全场笑翻。' },
+    { text: '🚶 走远一点打电话', effects: {health:5,mood:-5,energy:0}, response: '{name}跟到哪都要看手机屏幕。它觉得手机里有一个小人在跟你说话。' }
+  ]},
+  { text: '你在练习书法，{name}踩着墨水在纸上走了一遍！', choices: [
+    { text: '🐾 "爪印画"也是艺术！', effects: {health:5,mood:15,energy:-5}, response: '你把{name}的爪印画裱了起来。朋友们来参观都说有现代艺术的感觉。' },
+    { text: '🧹 赶紧清理，墨水会弄脏家', effects: {health:5,mood:-5,energy:-10}, response: '你花了一小时清理地上的墨水爪印。{name}在旁边看着你，好像不太明白发生了什么。' }
+  ]},
+  { text: '你订了外卖，{name}在门口等得比你还积极！', choices: [
+    { text: '🍱 给它准备一份它能吃的', effects: {health:5,mood:15,energy:5}, response: '你和{name}一起吃晚餐。它吃得比你还香！' },
+    { text: '🚪 让它在旁边看着你吃', effects: {health:5,mood:-10,energy:0}, response: '{name}全程盯着你的外卖盒，口水差点流下来...' }
+  ]},
+  { text: '{name}做了一个梦，睡着睡着突然蹬腿/叫了一声！', choices: [
+    { text: '💤 轻轻摸摸它继续睡', effects: {health:5,mood:10,energy:5}, response: '{name}感受到你的抚摸，在梦里安心了。你好奇它梦到了什么。' },
+    { text: '📹 赶紧录下来', effects: {health:5,mood:5,energy:0}, response: '{name}梦中蹬腿的样子太搞笑了！你录了一个十秒的小视频珍藏。' }
+  ]},
+  { text: '你买了一个新的自动喂水器，{name}不敢靠近！', choices: [
+    { text: '🫗 亲自示范怎么喝', effects: {health:10,mood:10,energy:-5}, response: '{name}看你喝了之后终于敢试了。哇，流动的水！从此爱上了喝水。' },
+    { text: '💧 先用旧碗喂，慢慢过渡', effects: {health:5,mood:5,energy:0}, response: '{name}花了三天才接受新喂水器。但现在它整天趴在旁边看水流，很上头。' }
+  ]},
+  { text: '{name}趴在你的书/电脑上不肯走，眼神仿佛在说"陪我玩"！', choices: [
+    { text: '💻 合上电脑陪它玩', effects: {health:5,mood:20,energy:-10}, response: '{name}终于得到了你全部的注意力！开心到上蹿下跳。你的工作？明天再说。' },
+    { text: '🤏 轻轻把它挪到旁边', effects: {health:5,mood:-5,energy:0}, response: '{name}不情愿地挪到旁边，但每隔五分钟就用可怜巴巴的眼神看你一次。' }
+  ]},
+  { text: '你在吃西瓜，{name}闻到了甜味凑过来了！', choices: [
+    { text: '🍉 给它一小块尝尝', effects: {health:-5,mood:15,energy:5}, response: '{name}小心翼翼地舔了一口，然后整块叼走了！它喜欢！' },
+    { text: '🚫 西瓜太甜了不能给', effects: {health:5,mood:-10,energy:0}, response: '{name}失望地走开了，但偷偷回来舔了一下你手上的西瓜汁。' }
+  ]},
+  { text: '你在打扫卫生，突然发现{name}的窝下面藏了好多宝贝！', choices: [
+    { text: '😂 帮它重新整理收藏', effects: {health:5,mood:10,energy:-5}, response: '里面有：一只袜子、两个瓶盖、一颗石头、一个橡皮筋...{name}的宝库太丰富了。' },
+    { text: '🗑️ 清理掉杂物', effects: {health:10,mood:-15,energy:-5}, response: '{name}发现自己的"收藏"被清了，委屈得趴在空荡荡的窝旁边不吃不喝...' }
+  ]},
+  { text: '你的朋友第一次来家里，{name}要不要出来见客？', choices: [
+    { text: '🤝 让{name}出来社交', effects: {health:5,mood:10,energy:-5}, response: '{name}表现得很大方！朋友被它的可爱迷住了，拍了好多照片。' },
+    { text: '🏠 让它在自己的空间待着', effects: {health:5,mood:5,energy:5}, response: '{name}在窝里偷偷观察了半天，最后还是忍不住出来看了一眼。' }
+  ]},
+  { text: '{name}不知道从哪叼来一朵花放在你面前！', choices: [
+    { text: '🌸 把花插在瓶子里', effects: {health:5,mood:20,energy:0}, response: '{name}看到你把花插好，好像很骄傲的样子。它在用自己的方式爱你。' },
+    { text: '💐 夸它是个浪漫的小家伙', effects: {health:5,mood:15,energy:0}, response: '{name}被表扬后又跑出去了，过了一会儿叼了一根树枝回来...好像不太一样？' }
+  ]},
+  { text: '你在厨房做饭，闻到味道的{name}在门口疯狂探头！', choices: [
+    { text: '👨‍🍳 做完后给它准备一份', effects: {health:10,mood:15,energy:-5}, response: '你专门给{name}做了一份宠物版晚餐。它吃得太满足了，差点在饭盆边睡着。' },
+    { text: '🚪 把厨房门关好', effects: {health:5,mood:-10,energy:0}, response: '{name}在门外闻了整个做饭过程。你打开门的时候它一脸"我等你很久了"。' }
+  ]}
+];
+
+// ===== GAME STATE =====
+let state = {};
+let usedSceneIdx = [];
+let usedGenericIdx = [];
+let currentScene = null;
+
+function getDefaultState() {
+  return {
+    pet: null,
+    health: 50, mood: 50, energy: 50,
+    round: 0, sceneInRound: 0, scenesPerRound: 3,
+    totalScenes: 0,
+    roundStartTotal: 150,
+    achievements: [],
+    roundRatings: [],
+    prevRoundRating: null,
+    highestLevel: 0,
+    hasLeveledUp: false,
+    firstChoiceInRound: true,
+    seasonsSeen: [],
+    sick: false,
+    sickTurns: 0,
+    hasCuredSick: false,
+    generation: 1,
+    hasReproduced: false,
+    offspringReady: false,
+    petDisplayName: ''
+  };
+}
+
+function init() {
+  state = getDefaultState();
+  usedSceneIdx = [];
+  usedGenericIdx = [];
+  currentScene = null;
+}
+
+// ===== LEVEL SYSTEM =====
+function getPetLevel(total) {
+  for (let i = PET_LEVELS.length - 1; i >= 0; i--) {
+    if (total >= PET_LEVELS[i].min) return { ...PET_LEVELS[i], idx: i };
+  }
+  return { ...PET_LEVELS[0], idx: 0 };
+}
+
+function getNextPetLevel(total) {
+  const cur = getPetLevel(total);
+  return cur.idx < PET_LEVELS.length - 1 ? PET_LEVELS[cur.idx + 1] : null;
+}
+
+function getLevelProgress(total) {
+  const cur = getPetLevel(total);
+  const next = getNextPetLevel(total);
+  if (!next) return 100;
+  return Math.round((total - cur.min) / (next.min - cur.min) * 100);
+}
+
+// ===== SEASON SYSTEM =====
+function getSeason(round) {
+  return SEASONS[(Math.floor((round - 1) / 3)) % 4];
+}
+
+function applySeasonBonus() {
+  const season = getSeason(state.round);
+  if (season.bonus) {
+    state[season.bonus] = Math.min(100, state[season.bonus] + 5);
+  }
+}
+
+// ===== RATING SYSTEM =====
+function getRoundRating(netChange) {
+  if (netChange >= 20) return { grade: 'S', stars: 5, label: '完美！', color: 'rank-S' };
+  if (netChange >= 10) return { grade: 'A', stars: 4, label: '优秀！', color: 'rank-A' };
+  if (netChange >= 0) return { grade: 'B', stars: 3, label: '不错', color: 'rank-B' };
+  if (netChange >= -10) return { grade: 'C', stars: 2, label: '还需努力', color: 'rank-C' };
+  return { grade: 'D', stars: 1, label: '要加油哦', color: 'rank-D' };
+}
+
+function getStarsHTML(count) {
+  let s = '';
+  for (let i = 0; i < 5; i++) s += i < count ? '⭐' : '☆';
+  return s;
+}
+
+// ===== ACHIEVEMENTS =====
+function checkAchievements() {
+  const total = state.health + state.mood + state.energy;
+  const lv = getPetLevel(total);
+  const newAchievements = [];
+
+  const checks = [
+    ['first_steps', () => state.round >= 1 && state.sceneInRound >= state.scenesPerRound],
+    ['best_friend', () => state.mood >= 90],
+    ['health_nut', () => state.health >= 90],
+    ['energizer', () => state.energy >= 90],
+    ['balance', () => state.health >= 70 && state.mood >= 70 && state.energy >= 70],
+    ['level_up', () => state.hasLeveledUp],
+    ['comeback', () => state.prevRoundRating === 'D' && state.roundRatings.length > 0 && ['S','A'].includes(state.roundRatings[state.roundRatings.length-1])],
+    ['whisperer', () => lv.idx >= 5],
+    ['legend', () => lv.idx >= 9],
+    ['seasons', () => state.seasonsSeen.length >= 4],
+    ['healer', () => state.hasCuredSick],
+    ['parent', () => state.hasReproduced],
+    ['generation2', () => state.generation >= 2],
+    ['perfect_round', () => state.roundRatings.includes('S')],
+    ['collector', () => state.achievements.length >= 6]
+  ];
+
+  for (const [id, check] of checks) {
+    if (!state.achievements.includes(id) && check()) {
+      state.achievements.push(id);
+      newAchievements.push(ACHIEVEMENTS.find(a => a.id === id));
+    }
+  }
+  return newAchievements;
+}
+
+function showAchievementPopup(achievement) {
+  const container = document.getElementById('achievementPopups');
+  const popup = document.createElement('div');
+  popup.className = 'achievement-popup';
+  popup.innerHTML = `
+    <div class="achievement-popup-icon">${achievement.emoji}</div>
+    <div>
+      <div class="achievement-popup-name">${achievement.name}</div>
+      <div class="achievement-popup-text">${achievement.desc}</div>
+    </div>
+  `;
+  container.appendChild(popup);
+  setTimeout(() => popup.remove(), 3500);
+}
+
+// ===== CONFETTI =====
+function showConfetti() {
+  const container = document.createElement('div');
+  container.className = 'confetti-container';
+  document.body.appendChild(container);
+  const colors = ['#F5C542', '#7BB661', '#89CFF0', '#F4A6B8', '#E07060', '#fff'];
+  for (let i = 0; i < 40; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = Math.random() * 100 + '%';
+    piece.style.animationDelay = Math.random() * 1 + 's';
+    piece.style.animationDuration = (2 + Math.random() * 2) + 's';
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    piece.style.width = (6 + Math.random() * 8) + 'px';
+    piece.style.height = (6 + Math.random() * 8) + 'px';
+    container.appendChild(piece);
+  }
+  setTimeout(() => container.remove(), 4000);
+}
+
+// ===== SCENE PICKER =====
+function replaceNameInScene(scene, name) {
+  const r = s => s.replace(/\{name\}/g, name);
+  return {
+    ...scene,
+    text: r(scene.text),
+    choices: scene.choices.map(c => ({
+      ...c,
+      text: r(c.text),
+      response: r(c.response)
+    }))
+  };
+}
+
+function pickScene(petKey) {
+  const pet = PETS[petKey];
+  const petName = state.petDisplayName || pet.name;
+  const pool = SCENES_POOL[petKey];
+
+  // Random events check
+  const eventChance = state.sick ? 0.55 : 0.35;
+  if (state.totalScenes > 0 && state.sceneInRound === 1 && Math.random() < eventChance) {
+    if (state.sick) {
+      const medicalEvents = RANDOM_EVENTS.filter(e => e.choices.some(c => c.curesSick));
+      const ev = medicalEvents[Math.floor(Math.random() * medicalEvents.length)];
+      return { ...ev, fromPool: false };
+    }
+    const ev = RANDOM_EVENTS[Math.floor(Math.random() * RANDOM_EVENTS.length)];
+    return { ...ev, fromPool: false };
+  }
+
+  // Build available pet-specific scenes
+  const availPet = [];
+  for (let i = 0; i < pool.length; i++) {
+    if (!usedSceneIdx.includes(i)) availPet.push(i);
+  }
+
+  // Build available generic scenes
+  const availGeneric = [];
+  for (let i = 0; i < GENERIC_SCENES.length; i++) {
+    if (!usedGenericIdx.includes(i)) availGeneric.push(i);
+  }
+
+  // Reset pools if both exhausted
+  if (availPet.length === 0 && availGeneric.length === 0) {
+    usedSceneIdx = [];
+    usedGenericIdx = [];
+    for (let i = 0; i < pool.length; i++) availPet.push(i);
+    for (let i = 0; i < GENERIC_SCENES.length; i++) availGeneric.push(i);
+  }
+
+  // Mix: 40% pet-specific (if available), 60% generic (if available)
+  const usePetSpecific = availPet.length > 0 && (availGeneric.length === 0 || Math.random() < 0.4);
+
+  if (usePetSpecific) {
+    const pick = availPet[Math.floor(Math.random() * availPet.length)];
+    usedSceneIdx.push(pick);
+    return { ...pool[pick], fromPool: true };
+  } else if (availGeneric.length > 0) {
+    const pick = availGeneric[Math.floor(Math.random() * availGeneric.length)];
+    usedGenericIdx.push(pick);
+    return { ...replaceNameInScene(GENERIC_SCENES[pick], petName), fromPool: true };
+  } else {
+    const pick = Math.floor(Math.random() * pool.length);
+    return { ...pool[pick], fromPool: true };
+  }
+}
+
+// ===== PERSISTENCE =====
+function saveGame() {
+  try {
+    localStorage.setItem('petIsland_state', JSON.stringify(state));
+    localStorage.setItem('petIsland_usedScenes', JSON.stringify(usedSceneIdx));
+    localStorage.setItem('petIsland_usedGeneric', JSON.stringify(usedGenericIdx));
+  } catch(e) {}
+}
+
+function loadGame() {
+  try {
+    const s = localStorage.getItem('petIsland_state');
+    const u = localStorage.getItem('petIsland_usedScenes');
+    const g = localStorage.getItem('petIsland_usedGeneric');
+    if (s) {
+      const loaded = JSON.parse(s);
+      state = { ...getDefaultState(), ...loaded };
+      usedSceneIdx = u ? JSON.parse(u) : [];
+      usedGenericIdx = g ? JSON.parse(g) : [];
+      return true;
+    }
+  } catch(e) {}
+  return false;
+}
+
+function clearSave() {
+  localStorage.removeItem('petIsland_state');
+  localStorage.removeItem('petIsland_usedScenes');
+  localStorage.removeItem('petIsland_usedGeneric');
+}
+
+// ===== RENDER HELPERS =====
+function renderContent(html) {
+  const el = document.getElementById('mainContent');
+  el.innerHTML = `<div class="content-area">${html}</div>`;
+}
+
+function buildSidebar() {
+  if (!state.pet) return '';
+  const pet = PETS[state.pet];
+  const total = state.health + state.mood + state.energy;
+  const lv = getPetLevel(total);
+  const progress = getLevelProgress(total);
+  const next = getNextPetLevel(total);
+  const season = getSeason(state.round || 1);
+
+  let achievementsHTML = '';
+  for (const a of ACHIEVEMENTS) {
+    const earned = state.achievements.includes(a.id);
+    achievementsHTML += `<div class="achievement-slot ${earned ? 'earned' : 'empty'}" title="${a.name}: ${a.desc}">${earned ? a.emoji : '?'}</div>`;
+  }
+
+  return `
+    <div class="sidebar">
+      <div class="sidebar-pet">
+        <span class="sidebar-pet-emoji">${pet.emoji}</span>
+        <div class="sidebar-pet-name">${state.petDisplayName || pet.name}</div>
+        <div class="sidebar-pet-breed">${pet.breed}${state.generation > 1 ? ` · 第${state.generation}代` : ''}</div>
+        ${state.sick ? `<div class="sick-badge">🤒 生病中（第${state.sickTurns}幕）</div>` : ''}
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">📊 属性</div>
+        <div class="stat-row">
+          <span class="stat-icon">❤️</span>
+          <span class="stat-name">健康</span>
+          <div class="stat-bar-wrap"><div class="stat-bar-fill health${state.sick ? ' sick-bar' : ''}" style="width:${state.health}%"></div></div>
+          <span class="stat-val">${state.health}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-icon">😊</span>
+          <span class="stat-name">心情</span>
+          <div class="stat-bar-wrap"><div class="stat-bar-fill mood" style="width:${state.mood}%"></div></div>
+          <span class="stat-val">${state.mood}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-icon">⚡</span>
+          <span class="stat-name">体力</span>
+          <div class="stat-bar-wrap"><div class="stat-bar-fill energy" style="width:${state.energy}%"></div></div>
+          <span class="stat-val">${state.energy}</span>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">🏅 等级</div>
+        <div class="level-display">
+          <div class="level-badge">${lv.emoji} ${lv.name}</div>
+          <div class="level-progress-wrap"><div class="level-progress-fill" style="width:${progress}%"></div></div>
+          <div class="level-next-info">${next ? `${total}分 → 下一级：${next.name}（${next.min}分）` : '已达最高等级！'}</div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">${season.emoji} 季节 · 第${state.round || 1}轮</div>
+        <div style="text-align:center;">
+          <span class="season-badge ${season.class}">${season.emoji} ${season.name}</span>
+          ${season.bonusText ? `<div style="font-size:11px;color:var(--brown-light);margin-top:4px;">季节加成：${season.bonusText}</div>` : ''}
+          <div style="font-size:11px;color:var(--brown-light);margin-top:4px;">
+            🕐 寿命：${Math.min(state.round || 1, MAX_LIFESPAN)}/${MAX_LIFESPAN}轮
+            ${state.hasReproduced ? ' · 🥚 有后代' : ''}
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">🎖️ 成就 (${state.achievements.length}/${ACHIEVEMENTS.length})</div>
+        <div class="achievements-grid">${achievementsHTML}</div>
+      </div>
+    </div>
+  `;
+}
+
+function updateLayout(hasSidebar) {
+  const layout = document.getElementById('gameLayout');
+  if (hasSidebar) {
+    layout.className = 'game-layout has-sidebar';
+    layout.innerHTML = buildSidebar() + '<div class="main-content" id="mainContent"></div>';
+  } else {
+    layout.className = 'game-layout';
+    layout.innerHTML = '<div class="main-content" id="mainContent"></div>';
+  }
+}
+
+function refreshSidebar() {
+  const layout = document.getElementById('gameLayout');
+  const sidebar = layout.querySelector('.sidebar');
+  if (sidebar) {
+    const newSidebar = document.createElement('div');
+    newSidebar.innerHTML = buildSidebar();
+    sidebar.replaceWith(newSidebar.firstElementChild);
+  }
+}
+
+function updateSeasonBg() {
+  const season = getSeason(state.round || 1);
+  document.body.className = season.class.replace('season-', 'season-');
+}
+
+// ===== PET PERSONALITY =====
+function getPersonality() {
+  const { health, mood, energy } = state;
+  const max = Math.max(health, mood, energy);
+  if (health === max && mood === max) return { name: '幸福满满型', desc: '你的宠物既健康又快乐，是最幸福的小可爱！', emoji: '🌟' };
+  if (health === max && energy === max) return { name: '活力健将型', desc: '健康又充满能量，随时准备好出发冒险！', emoji: '🏃' };
+  if (mood === max && energy === max) return { name: '快乐精灵型', desc: '开心又有活力，是家里的小太阳！', emoji: '☀️' };
+  if (health === max) return { name: '养生达人型', desc: '身体棒棒的，是最让人放心的宝贝。', emoji: '💚' };
+  if (mood === max) return { name: '开心果型', desc: '永远笑嘻嘻的，看到它就心情好！', emoji: '😄' };
+  if (energy === max) return { name: '精力旺盛型', desc: '永远电量满格，停不下来的小马达！', emoji: '🔋' };
+  return { name: '均衡发展型', desc: '各方面都很平衡，是个懂事的好宝贝。', emoji: '⚖️' };
+}
+
+// ===== SCREENS =====
+function showPetSelect() {
+  init();
+  clearSave();
+  updateLayout(false);
+  updateSeasonBg();
+
+  let cardsHTML = '';
+  for (const [key, pet] of Object.entries(PETS)) {
+    cardsHTML += `
+      <div class="pet-card" onclick="selectPet('${key}')">
+        <span class="pet-card-emoji">${pet.emoji}</span>
+        <div class="pet-card-name">${pet.name}</div>
+        <div class="pet-card-breed">${pet.breed}</div>
+        <div class="pet-card-desc">${pet.desc}</div>
+      </div>`;
+  }
+
+  renderContent(`
+    <div class="welcome-title">
+      <h2>🏝️ Welcome to Pet Island!</h2>
+      <p>选择你想养的宠物，开始你的小岛生活吧～</p>
+    </div>
+    <div class="pet-grid">${cardsHTML}</div>
+    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--brown-light);">
+      游戏设计：小小设计师 👧 | 技术实现：AI 🤖
+    </div>
+  `);
+}
+
+function selectPet(key) {
+  state.pet = key;
+  state.round = 1;
+  state.sceneInRound = 0;
+  state.petDisplayName = PETS[key].name;
+
+  const season = getSeason(1);
+  if (!state.seasonsSeen.includes(season.name)) state.seasonsSeen.push(season.name);
+
+  updateLayout(true);
+  updateSeasonBg();
+  showRoundIntro();
+}
+
+function showRoundIntro() {
+  const pet = PETS[state.pet];
+  const petName = state.petDisplayName || pet.name;
+  const total = state.health + state.mood + state.energy;
+  const lv = getPetLevel(total);
+  const season = getSeason(state.round);
+
+  if (!state.seasonsSeen.includes(season.name)) state.seasonsSeen.push(season.name);
+  updateSeasonBg();
+
+  state.roundStartTotal = total;
+  state.firstChoiceInRound = true;
+
+  // Stat decay after round 2
+  if (state.round > 2) {
+    const stats = ['health', 'mood', 'energy'];
+    const decayStat = stats[Math.floor(Math.random() * 3)];
+    state[decayStat] = Math.max(0, state[decayStat] - 3);
+  }
+
+  // Aging penalties after AGING_START
+  let agingMsg = '';
+  if (state.round >= AGING_START) {
+    const agingPenalty = state.round >= 22 ? 5 : 3;
+    state.health = Math.max(0, state.health - agingPenalty);
+    state.energy = Math.max(0, state.energy - agingPenalty);
+    const remainLife = MAX_LIFESPAN - state.round;
+    if (remainLife <= 2) {
+      agingMsg = `👴 ${petName}已经步入晚年了...它走得越来越慢，但眼神依然温柔。还剩 ${remainLife} 轮时光。`;
+    } else {
+      agingMsg = `🕐 ${petName}慢慢变老了，活动力开始下降...还能陪你 ${remainLife} 轮。`;
+    }
+  }
+
+  // Sickness check — higher chance when health is low
+  if (state.round > 1 && !state.sick) {
+    const sickChance = 0.12 + (100 - state.health) / 400;
+    if (Math.random() < sickChance) {
+      state.sick = true;
+      state.sickTurns = 0;
+    }
+  }
+
+  applySeasonBonus();
+  refreshSidebar();
+
+  renderContent(`
+    <div style="text-align:center;">
+      <div style="font-size:64px;margin:10px 0;">${pet.emoji}</div>
+      <div style="font-size:18px;font-weight:700;">${petName}</div>
+      <div style="font-size:12px;color:var(--brown-light);">${pet.breed}${state.generation > 1 ? ` · 第${state.generation}代` : ''}</div>
+    </div>
+
+    <div class="scene-header" style="justify-content:center;margin-top:14px;">
+      <span class="round-tag">第 ${state.round} 轮</span>
+      <span class="season-badge ${season.class}">${season.emoji} ${season.name}</span>
+      ${state.round >= AGING_START ? '<span class="round-tag" style="background:var(--brown-light);">👴 晚年</span>' : ''}
+    </div>
+
+    ${agingMsg ? `<div class="scene-card event-card" style="border-color:#B8A88A;background:#FFF8E7;">${agingMsg}</div>` : ''}
+
+    <div class="scene-card">
+      ${state.round === 1
+        ? `欢迎来到宠物小岛！你选择了 <strong>${petName}</strong>（${pet.breed}）。<br><br>它现在是 ${lv.emoji} <strong>${lv.name}</strong>，好好照顾它，看它能成长到什么阶段吧！<br><br>每轮有 ${state.scenesPerRound} 个场景需要你做出选择。你的选择会影响宠物的健康、心情和体力～<br><br>🕐 每只宠物的寿命是2年（${MAX_LIFESPAN}轮），要珍惜在一起的每一天哦！`
+        : `第 ${state.round} 轮养成开始！${petName}现在是 ${lv.emoji} <strong>${lv.name}</strong>。<br><br>${season.bonusText ? `${season.emoji} ${season.name}到了！本轮季节加成：<strong>${season.bonusText}</strong>` : `${season.emoji} ${season.name}来了，继续照顾${petName}吧！`}${state.round > 2 && state.round < AGING_START ? '<br><br>⏳ 随着时间流逝，属性有所波动...' : ''}`}
+    </div>
+
+    ${state.sick ? `<div class="sick-banner">🤒 ${pet.name}生病了！健康和心情会持续下降，赶紧想办法治疗吧！</div>` : ''}
+
+    <button class="action-btn" onclick="nextSceneInRound()">🎮 开始养成！</button>
+    ${state.sick ? `<button class="action-btn secondary" onclick="visitVet()" style="margin-top:8px;">🏥 直接带${pet.name}去看兽医</button>` : ''}
+  `);
+
+  saveGame();
+}
+
+function nextSceneInRound() {
+  state.sceneInRound++;
+  if (state.sceneInRound > state.scenesPerRound) {
+    showRoundResult();
+    return;
+  }
+  currentScene = pickScene(state.pet);
+  showSceneUI();
+}
+
+function showSceneUI() {
+  const pet = PETS[state.pet];
+  const scene = currentScene;
+
+  let dots = '<div class="progress-dots">';
+  for (let i = 1; i <= state.scenesPerRound; i++) {
+    dots += `<div class="dot ${i < state.sceneInRound ? 'done' : ''} ${i === state.sceneInRound ? 'active' : ''}"></div>`;
+  }
+  dots += '</div>';
+
+  const choicesHTML = scene.choices.map((c, i) =>
+    `<button class="choice-btn" onclick="choose(${i})">${c.text}</button>`
+  ).join('');
+
+  renderContent(`
+    <div class="scene-header">
+      <span class="round-tag">第 ${state.round} 轮</span>
+      <span class="scene-tag">第 ${state.sceneInRound}/${state.scenesPerRound} 幕</span>
+    </div>
+    ${dots}
+    ${state.sick ? `<div class="sick-banner">🤒 ${pet.name}正在生病，每幕会额外扣血扣心情！${state.sickTurns >= 2 ? '病情在恶化...' : ''}</div>` : ''}
+    <div class="scene-card ${scene.isEvent ? 'event-card' : ''}">${scene.text}</div>
+    <div class="choices-list">${choicesHTML}</div>
+  `);
+}
+
+function choose(idx) {
+  const choice = currentScene.choices[idx];
+  const prevTotal = state.health + state.mood + state.energy;
+  const prevLv = getPetLevel(prevTotal);
+
+  // Apply daily bonus for first choice
+  if (state.firstChoiceInRound) {
+    state.health = Math.min(100, state.health + 3);
+    state.mood = Math.min(100, state.mood + 3);
+    state.energy = Math.min(100, state.energy + 3);
+    state.firstChoiceInRound = false;
+  }
+
+  // Sick penalties — each scene drains stats, worsens over time
+  let sickDrain = null;
+  if (state.sick) {
+    state.sickTurns++;
+    const hDrain = state.sickTurns >= 4 ? -8 : -5;
+    const mDrain = state.sickTurns >= 4 ? -5 : -3;
+    const eDrain = state.sickTurns >= 3 ? -3 : 0;
+    state.health = Math.max(0, state.health + hDrain);
+    state.mood = Math.max(0, state.mood + mDrain);
+    state.energy = Math.max(0, state.energy + eDrain);
+    sickDrain = { health: hDrain, mood: mDrain, energy: eDrain };
+  }
+
+  // Cure or worsen sickness based on choice flags
+  if (choice.curesSick && state.sick) {
+    state.sick = false;
+    state.sickTurns = 0;
+    state.hasCuredSick = true;
+  } else if (choice.makesSick && !state.sick) {
+    state.sick = true;
+    state.sickTurns = 0;
+  }
+
+  state.health = Math.max(0, Math.min(100, state.health + choice.effects.health));
+  state.mood = Math.max(0, Math.min(100, state.mood + choice.effects.mood));
+  state.energy = Math.max(0, Math.min(100, state.energy + choice.effects.energy));
+  state.totalScenes++;
+
+  const newTotal = state.health + state.mood + state.energy;
+  const newLv = getPetLevel(newTotal);
+
+  if (newLv.idx > state.highestLevel) state.highestLevel = newLv.idx;
+
+  let levelChange = null;
+  if (newLv.idx > prevLv.idx) {
+    levelChange = 'up';
+    state.hasLeveledUp = true;
+    showConfetti();
+  } else if (newLv.idx < prevLv.idx) {
+    levelChange = 'down';
+  }
+
+  const newAchievements = checkAchievements();
+  for (const a of newAchievements) {
+    setTimeout(() => showAchievementPopup(a), 500);
+  }
+
+  refreshSidebar();
+
+  if (choice.checkHibernate && state.energy <= 0) {
+    showHibernate(choice.response, choice.effects, levelChange);
+    return;
+  }
+
+  showChoiceResult(choice.response, choice.effects, levelChange, sickDrain, choice.curesSick);
+  saveGame();
+}
+
+function statChangeHTML(effects) {
+  const items = [
+    { label: '❤️', val: effects.health },
+    { label: '😊', val: effects.mood },
+    { label: '⚡', val: effects.energy }
+  ];
+  return `<div class="stat-changes">
+    ${items.map(s => {
+      if (s.val === 0) return '';
+      const cls = s.val > 0 ? 'up' : 'down';
+      return `<span class="stat-change ${cls}">${s.label} ${s.val > 0 ? '+' : ''}${s.val}</span>`;
+    }).join('')}
+  </div>`;
+}
+
+function showChoiceResult(response, effects, levelChange, sickDrain, cured) {
+  const pet = PETS[state.pet];
+  const total = state.health + state.mood + state.energy;
+  const lv = getPetLevel(total);
+
+  let levelBanner = '';
+  if (levelChange === 'up') {
+    levelBanner = `<div class="level-change-banner up">⬆️ ${pet.name}晋级为 ${lv.emoji} ${lv.name}！</div>`;
+  } else if (levelChange === 'down') {
+    levelBanner = `<div class="level-change-banner down">⬇️ ${pet.name}降级为 ${lv.emoji} ${lv.name}...</div>`;
+  }
+
+  let sickInfo = '';
+  if (sickDrain && !cured) {
+    sickInfo = `<div class="sick-banner">🤒 生病中！本幕额外损失：❤️${sickDrain.health} 😊${sickDrain.mood}${sickDrain.energy ? ' ⚡' + sickDrain.energy : ''}${state.sickTurns >= 3 ? '<br>⚠️ 病情在恶化，赶紧治疗！' : ''}</div>`;
+  } else if (cured) {
+    sickInfo = `<div class="level-change-banner up">🎉 ${pet.name}的病治好了！恢复健康！</div>`;
+  }
+
+  renderContent(`
+    ${levelBanner}
+    ${sickInfo}
+    <div class="response-card">${response}</div>
+    ${statChangeHTML(effects)}
+    <button class="action-btn" onclick="nextSceneInRound()">
+      ${state.sceneInRound >= state.scenesPerRound ? '📊 查看本轮结果' : '👉 下一幕'}
+    </button>
+  `);
+}
+
+function showHibernate(response, effects, levelChange) {
+  const pet = PETS[state.pet];
+
+  renderContent(`
+    <div style="text-align:center;font-size:64px;margin:10px 0;">😴💤</div>
+    <div class="response-card">${response}</div>
+    <div class="hibernate-card">
+      ⚠️ <strong>${pet.name}进入了休眠状态！</strong><br>体力消耗过大，需要好好休息...
+    </div>
+    ${statChangeHTML(effects)}
+    <button class="action-btn" onclick="showRoundResult()">📊 查看本轮结果</button>
+  `);
+  saveGame();
+}
+
+function visitVet() {
+  const pet = PETS[state.pet];
+  const prevTotal = state.health + state.mood + state.energy;
+  const prevLv = getPetLevel(prevTotal);
+
+  state.sick = false;
+  state.sickTurns = 0;
+  state.hasCuredSick = true;
+  state.health = Math.min(100, state.health + 10);
+  state.mood = Math.max(0, state.mood - 5);
+  state.energy = Math.max(0, state.energy - 10);
+
+  const newTotal = state.health + state.mood + state.energy;
+  const newLv = getPetLevel(newTotal);
+
+  refreshSidebar();
+  saveGame();
+
+  const effects = { health: 10, mood: -5, energy: -10 };
+
+  renderContent(`
+    <div class="level-change-banner up">🎉 ${pet.name}的病治好了！</div>
+    <div class="response-card">你带${pet.name}去了宠物医院，医生仔细检查后开了药。${pet.name}虽然打针的时候有点紧张，但在你的安慰下勇敢地扛过去了！回家后${pet.name}精神好多了～</div>
+    ${statChangeHTML(effects)}
+    <button class="action-btn" onclick="nextSceneInRound()">🎮 开始养成！</button>
+  `);
+}
+
+function showRoundResult() {
+  const pet = PETS[state.pet];
+  const total = state.health + state.mood + state.energy;
+  const lv = getPetLevel(total);
+  const netChange = total - state.roundStartTotal;
+  const rating = getRoundRating(netChange);
+
+  state.roundRatings.push(rating.grade);
+  state.prevRoundRating = rating.grade;
+
+  const newAchievements = checkAchievements();
+  for (const a of newAchievements) {
+    setTimeout(() => showAchievementPopup(a), 500);
+  }
+
+  refreshSidebar();
+
+  const petName = state.petDisplayName || pet.name;
+
+  let comment;
+  if (lv.idx >= 9) comment = `${petName}已经成为传说岛民了！你们之间的默契无人能及！`;
+  else if (lv.idx >= 7) comment = `${petName}已经是岛上的VIP了！继续加油！`;
+  else if (lv.idx >= 5) comment = `${petName}正在茁壮成长，你是一位出色的岛民！`;
+  else if (lv.idx >= 3) comment = `${petName}已经融入小岛生活了，继续努力！`;
+  else if (lv.idx >= 1) comment = `${petName}正在适应新家，多花时间陪伴它！`;
+  else comment = `${petName}还是新来的岛民，需要更多关爱哦！`;
+
+  const remainLife = MAX_LIFESPAN - state.round;
+  if (remainLife <= 4 && remainLife > 0) {
+    comment += `<br><br>🕐 ${petName}还能陪你 ${remainLife} 轮...珍惜每一刻吧。`;
+  }
+
+  let btns = '';
+  if (state.round < MAX_LIFESPAN) {
+    btns += `<button class="action-btn gold" onclick="nextRound()">🔄 继续下一轮</button>`;
+  } else {
+    btns += `<button class="action-btn gold" onclick="showPetFarewell()">🌅 送别${petName}...</button>`;
+  }
+  btns += `<button class="action-btn secondary" onclick="showFinalSummary()" style="margin-top:8px;">📋 查看总结报告</button>`;
+  btns += `<button class="action-btn secondary" onclick="showPetSelect()" style="margin-top:8px;">🐾 换个宠物重新开始</button>`;
+
+  renderContent(`
+    <div class="result-container">
+      <div class="result-emoji">${pet.emoji}</div>
+      <div class="result-title">第 ${state.round} 轮结束</div>
+
+      <div class="rank-display ${rating.color}">${rating.grade}</div>
+      <div class="stars-display">${getStarsHTML(rating.stars)}</div>
+      <div style="font-size:14px;color:var(--brown-light);margin-bottom:12px;">${rating.label}</div>
+
+      <div style="margin:8px 0;">
+        <span style="font-size:13px;color:var(--brown-light);">本轮变化：</span>
+        <span style="font-size:18px;font-weight:700;color:${netChange >= 0 ? 'var(--leaf-dark)' : 'var(--red)'};">${netChange >= 0 ? '+' : ''}${netChange}</span>
+        <span style="font-size:13px;color:var(--brown-light);">  总分：</span>
+        <span style="font-size:18px;font-weight:700;color:var(--leaf-dark);">${total}/300</span>
+      </div>
+
+      <div class="comment-box">${comment}</div>
+
+      ${btns}
+    </div>
+  `);
+
+  saveGame();
+}
+
+function showFinalSummary() {
+  const pet = PETS[state.pet];
+  const total = state.health + state.mood + state.energy;
+  const lv = getPetLevel(total);
+  const highestLv = PET_LEVELS[state.highestLevel];
+  const personality = getPersonality();
+
+  const avgGrade = state.roundRatings.length > 0
+    ? (() => {
+        const vals = { S: 5, A: 4, B: 3, C: 2, D: 1 };
+        const avg = state.roundRatings.reduce((s, g) => s + vals[g], 0) / state.roundRatings.length;
+        if (avg >= 4.5) return 'S';
+        if (avg >= 3.5) return 'A';
+        if (avg >= 2.5) return 'B';
+        if (avg >= 1.5) return 'C';
+        return 'D';
+      })()
+    : 'B';
+
+  const ratingSummary = getRoundRating(avgGrade === 'S' ? 20 : avgGrade === 'A' ? 10 : avgGrade === 'B' ? 0 : avgGrade === 'C' ? -5 : -15);
+
+  renderContent(`
+    <div class="result-container">
+      <div class="result-emoji">${pet.emoji}</div>
+      <div class="result-title">${pet.name}的成长报告</div>
+
+      <div class="personality-card">
+        <div class="personality-title">🧬 宠物性格</div>
+        <div class="personality-name">${personality.emoji} ${personality.name}</div>
+        <div class="personality-desc">${personality.desc}</div>
+      </div>
+
+      <div class="summary-stats">
+        <div class="summary-stat">
+          <div class="summary-stat-value">${state.round}</div>
+          <div class="summary-stat-label">总轮数</div>
+        </div>
+        <div class="summary-stat">
+          <div class="summary-stat-value">${total}/300</div>
+          <div class="summary-stat-label">总分</div>
+        </div>
+        <div class="summary-stat">
+          <div class="summary-stat-value">${highestLv.emoji}</div>
+          <div class="summary-stat-label">最高等级：${highestLv.name}</div>
+        </div>
+        <div class="summary-stat">
+          <div class="summary-stat-value">${state.achievements.length}/${ACHIEVEMENTS.length}</div>
+          <div class="summary-stat-label">成就</div>
+        </div>
+      </div>
+
+      <div style="margin:12px 0;">
+        <div style="font-size:12px;color:var(--brown-light);margin-bottom:4px;">综合评价</div>
+        <div class="rank-display ${ratingSummary.color}">${avgGrade}</div>
+        <div class="stars-display">${getStarsHTML(ratingSummary.stars)}</div>
+      </div>
+
+      <div style="margin:12px 0;font-size:12px;color:var(--brown-light);">
+        各轮评价：${state.roundRatings.map(r => `<strong>${r}</strong>`).join(' → ')}
+      </div>
+
+      ${state.achievements.length > 0 ? `
+        <div class="comment-box" style="text-align:left;">
+          <strong>获得的成就：</strong><br>
+          ${state.achievements.map(id => {
+            const a = ACHIEVEMENTS.find(x => x.id === id);
+            return `${a.emoji} ${a.name}`;
+          }).join(' · ')}
+        </div>
+      ` : ''}
+
+      <button class="action-btn" onclick="showRoundResult()">↩️ 返回</button>
+      <button class="action-btn secondary" onclick="showPetSelect()" style="margin-top:8px;">🐾 重新开始</button>
+
+      <div style="margin-top:16px;font-size:10px;color:var(--brown-light);">
+        游戏设计：小小设计师 👧 | 技术实现：AI 🤖
+      </div>
+    </div>
+  `);
+}
+
+// ===== REPRODUCTION =====
+function showReproduction() {
+  const pet = PETS[state.pet];
+  const petName = state.petDisplayName || pet.name;
+
+  updateLayout(true);
+  refreshSidebar();
+  showConfetti();
+
+  renderContent(`
+    <div style="text-align:center;">
+      <div style="font-size:64px;margin:10px 0;">${pet.babyEmoji}${pet.emoji}${pet.babyEmoji}</div>
+      <div class="result-title">🎉 新生命诞生！</div>
+    </div>
+
+    <div class="scene-card event-card">
+      太棒了！<strong>${petName}</strong>${pet.birthVerb}！<br><br>
+      小小的${pet.babyWord}依偎在${petName}身边，${petName}温柔地看着自己的孩子，眼里满满的都是爱。<br><br>
+      ${petName}的生命不会永远持续，但有了后代，它的血脉将会延续下去。当${petName}走完这一生时，你可以继续照顾它的孩子～
+    </div>
+
+    ${statChangeHTML({health:5, mood:15, energy:-5})}
+
+    <button class="action-btn gold" onclick="confirmReproduction()">💕 欢迎小宝贝的到来！</button>
+  `);
+}
+
+function confirmReproduction() {
+  state.hasReproduced = true;
+  state.offspringReady = true;
+  state.health = Math.min(100, state.health + 5);
+  state.mood = Math.min(100, state.mood + 15);
+  state.energy = Math.max(0, state.energy - 5);
+
+  const newAchievements = checkAchievements();
+  for (const a of newAchievements) {
+    setTimeout(() => showAchievementPopup(a), 500);
+  }
+
+  refreshSidebar();
+  saveGame();
+  showRoundIntro();
+}
+
+// ===== PET FAREWELL (death) =====
+function showPetFarewell() {
+  const pet = PETS[state.pet];
+  const petName = state.petDisplayName || pet.name;
+  const total = state.health + state.mood + state.energy;
+  const lv = getPetLevel(total);
+  const highestLv = PET_LEVELS[state.highestLevel];
+  const personality = getPersonality();
+
+  updateLayout(true);
+  refreshSidebar();
+
+  const genSuffix = ['', '二世', '三世', '四世', '五世', '六世', '七世', '八世', '九世', '十世'];
+  const nextGenName = pet.name + (genSuffix[state.generation] || `${state.generation+1}世`);
+
+  renderContent(`
+    <div class="result-container">
+      <div style="font-size:64px;margin:10px 0;">🌅${pet.emoji}💫</div>
+      <div class="result-title">告别 ${petName}</div>
+
+      <div class="scene-card" style="text-align:left;line-height:1.8;">
+        ${petName}走完了它快乐的一生。<br><br>
+        在这 ${state.round - 1} 轮的时光里，${petName}从一个${PET_LEVELS[0].name}成长为 ${lv.emoji} <strong>${lv.name}</strong>。
+        它最高达到了 ${highestLv.emoji} <strong>${highestLv.name}</strong> 的等级。<br><br>
+        ${petName}的性格是 ${personality.emoji} <strong>${personality.name}</strong> — ${personality.desc}<br><br>
+        ${state.offspringReady
+          ? `虽然${petName}离开了，但它的孩子 <strong>${nextGenName}</strong> 已经准备好继续这段旅程了！🌱`
+          : `${petName}安静地闭上了眼睛，带着满满的回忆离开了...谢谢你陪伴它的每一天。`}
+      </div>
+
+      <div class="summary-stats">
+        <div class="summary-stat">
+          <div class="summary-stat-value">${state.round - 1}</div>
+          <div class="summary-stat-label">陪伴轮数</div>
+        </div>
+        <div class="summary-stat">
+          <div class="summary-stat-value">${highestLv.emoji}</div>
+          <div class="summary-stat-label">最高等级</div>
+        </div>
+        <div class="summary-stat">
+          <div class="summary-stat-value">${state.generation}</div>
+          <div class="summary-stat-label">第几代</div>
+        </div>
+        <div class="summary-stat">
+          <div class="summary-stat-value">${state.achievements.length}</div>
+          <div class="summary-stat-label">成就数</div>
+        </div>
+      </div>
+
+      ${state.offspringReady
+        ? `<button class="action-btn gold" onclick="startNewGeneration()">🌱 开始养育 ${nextGenName}</button>`
+        : `<button class="action-btn" onclick="showPetSelect()">🐾 选择新的宠物</button>`}
+      <button class="action-btn secondary" onclick="showPetSelect()" style="margin-top:8px;">🔄 换一种宠物重新开始</button>
+    </div>
+  `);
+
+  saveGame();
+}
+
+// ===== NEW GENERATION =====
+function startNewGeneration() {
+  const pet = PETS[state.pet];
+  const prevGen = state.generation;
+  const prevHealth = state.health;
+  const prevMood = state.mood;
+  const prevEnergy = state.energy;
+  const prevAchievements = [...state.achievements];
+  const prevRoundRatings = [...state.roundRatings];
+  const petKey = state.pet;
+
+  const genSuffix = ['', '二世', '三世', '四世', '五世', '六世', '七世', '八世', '九世', '十世'];
+  const newGenName = pet.name + (genSuffix[prevGen] || `${prevGen+1}世`);
+
+  // Reset state for new generation
+  state.round = 1;
+  state.sceneInRound = 0;
+  state.scenesPerRound = 3;
+  state.totalScenes = 0;
+  state.roundStartTotal = 150;
+  state.roundRatings = [];
+  state.prevRoundRating = null;
+  state.highestLevel = 0;
+  state.hasLeveledUp = false;
+  state.firstChoiceInRound = true;
+  state.seasonsSeen = [];
+  state.sick = false;
+  state.sickTurns = 0;
+  state.hasReproduced = false;
+  state.offspringReady = false;
+
+  // Inherit from parent
+  state.generation = prevGen + 1;
+  state.petDisplayName = newGenName;
+  state.health = Math.min(100, 50 + Math.round(prevHealth * 0.15));
+  state.mood = Math.min(100, 50 + Math.round(prevMood * 0.15));
+  state.energy = Math.min(100, 50 + Math.round(prevEnergy * 0.15));
+  state.achievements = prevAchievements;
+  state.hasCuredSick = prevAchievements.includes('healer');
+
+  usedSceneIdx = [];
+  usedGenericIdx = [];
+  currentScene = null;
+
+  const season = getSeason(1);
+  if (!state.seasonsSeen.includes(season.name)) state.seasonsSeen.push(season.name);
+
+  const newAchievements = checkAchievements();
+  for (const a of newAchievements) {
+    setTimeout(() => showAchievementPopup(a), 500);
+  }
+
+  updateLayout(true);
+  updateSeasonBg();
+  showConfetti();
+
+  renderContent(`
+    <div style="text-align:center;">
+      <div style="font-size:64px;margin:10px 0;">${pet.babyEmoji}✨</div>
+      <div class="result-title">🌱 ${newGenName}来了！</div>
+    </div>
+
+    <div class="scene-card">
+      <strong>${newGenName}</strong>继承了上一代的优秀基因，开始了新的冒险！<br><br>
+      第${state.generation}代 ${pet.breed} 已经准备好了。它带着上一代的祝福，要创造属于自己的故事。<br><br>
+      初始属性受到了上一代的加成：<br>
+      ❤️ 健康 ${state.health} · 😊 心情 ${state.mood} · ⚡ 体力 ${state.energy}
+    </div>
+
+    <button class="action-btn gold" onclick="showRoundIntro()">🎮 开始第${state.generation}代的旅程！</button>
+  `);
+
+  saveGame();
+}
+
+function nextRound() {
+  state.round++;
+  state.sceneInRound = 0;
+  if (state.round >= 4) state.scenesPerRound = 4;
+
+  // Check lifespan — pet dies after MAX_LIFESPAN rounds
+  if (state.round > MAX_LIFESPAN) {
+    showPetFarewell();
+    return;
+  }
+
+  // Check reproduction trigger
+  if (!state.hasReproduced && state.round >= REPRODUCE_MIN && state.round <= REPRODUCE_MAX) {
+    const reproChance = state.round >= REPRODUCE_MAX ? 1.0 : 0.5;
+    if (Math.random() < reproChance) {
+      showReproduction();
+      return;
+    }
+  }
+  // Force reproduction before it's too late
+  if (!state.hasReproduced && state.round > REPRODUCE_MAX) {
+    showReproduction();
+    return;
+  }
+
+  showRoundIntro();
+}
+
+// ===== HEADER ACTIONS =====
+function confirmRestart() {
+  if (state.pet && confirm('确定要重新开始吗？当前进度将丢失。')) {
+    showPetSelect();
+  } else if (!state.pet) {
+    showPetSelect();
+  }
+}
+
+function toggleAchievements() {
+  if (!state.pet) return;
+  let html = '<div style="text-align:center;"><div class="result-title">🎖️ 成就一览</div></div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin:16px 0;">';
+  for (const a of ACHIEVEMENTS) {
+    const earned = state.achievements.includes(a.id);
+    html += `
+      <div style="background:${earned ? 'linear-gradient(135deg,#FFF8E7,#FFECB3)' : '#f5f5f5'};border:2px solid ${earned ? 'var(--gold)' : 'var(--wood)'};border-radius:12px;padding:12px;text-align:center;${earned ? '' : 'opacity:0.5;'}">
+        <div style="font-size:28px;">${a.emoji}</div>
+        <div style="font-size:13px;font-weight:700;margin:4px 0;">${a.name}</div>
+        <div style="font-size:11px;color:var(--brown-light);">${a.desc}</div>
+        ${earned ? '<div style="font-size:10px;color:var(--gold-dark);margin-top:4px;">✓ 已获得</div>' : ''}
+      </div>`;
+  }
+  html += '</div>';
+  html += '<button class="action-btn secondary" onclick="restoreView()">↩️ 返回</button>';
+  renderContent(html);
+}
+
+let savedView = null;
+function restoreView() {
+  if (state.pet && state.round > 0) {
+    if (state.sceneInRound === 0) showRoundIntro();
+    else if (state.sceneInRound > state.scenesPerRound) showRoundResult();
+    else if (currentScene) showSceneUI();
+    else showRoundIntro();
+  } else {
+    showPetSelect();
+  }
+}
+
+// ===== INIT =====
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('loadingScreen').classList.add('hide');
+  }, 800);
+
+  if (loadGame() && state.pet) {
+    updateLayout(true);
+    updateSeasonBg();
+    if (state.sceneInRound === 0) {
+      showRoundIntro();
+    } else {
+      showRoundIntro();
+    }
+  } else {
+    showPetSelect();
+  }
+});
+</script>
+</body>
+</html>
